@@ -1,4 +1,3 @@
-// App.js
 import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator } from 'react-native';
 import * as Font from 'expo-font';
@@ -6,7 +5,6 @@ import * as Font from 'expo-font';
 export default function App() {
   const [fontsLoaded, setFontsLoaded] = useState(false);
 
-  // Загрузка шрифтов
   useEffect(() => {
     async function loadFonts() {
       await Font.loadAsync({
@@ -28,27 +26,23 @@ export default function App() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Верхняя часть: Настройки */}
       <View style={styles.header}>
         <TouchableOpacity>
           <Text style={styles.headerText}>Настройки</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Центральная часть: Логотип и слоган */}
       <View style={styles.content}>
         <Text style={styles.title}>FrostRise</Text>
         <Text style={styles.subtitle}>
           Точный расчет пучения грунта для дорог, фундаментов и аэродромов
         </Text>
 
-        {/* Кнопка "Новый расчёт" */}
         <TouchableOpacity style={styles.button}>
           <Text style={styles.buttonText}>Новый расчёт</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Нижняя часть: Справка */}
       <View style={styles.footer}>
         <TouchableOpacity>
           <Text style={styles.footerText}>Справка</Text>
@@ -61,16 +55,16 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F3DAD2', // новый фон
+    backgroundColor: '#F3DAD2', 
   },
   header: {
     alignItems: 'flex-end',
     padding: 15,
   },
   headerText: {
-    color: '#7EA6D9', // новый цвет ссылок
+    color: '#7EA6D9', 
     fontSize: 16,
-    fontFamily: 'IBM-Plex-Mono', // кастомный шрифт
+    fontFamily: 'IBM-Plex-Mono',
   },
   content: {
     flex: 1,
@@ -83,8 +77,8 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 10,
     textAlign: 'center',
-    color: '#000000', // черный текст
-    fontFamily: 'IBM-Plex-Mono-Bold', // жирный шрифт
+    color: '#000000',
+    fontFamily: 'IBM-Plex-Mono-Bold',
   },
   subtitle: {
     fontSize: 16,
@@ -95,7 +89,7 @@ const styles = StyleSheet.create({
     fontFamily: 'IBM-Plex-Mono',
   },
   button: {
-    backgroundColor: '#8660C9', // новый цвет кнопки
+    backgroundColor: '#8660C9',
     paddingVertical: 15,
     paddingHorizontal: 40,
     borderRadius: 8,
@@ -113,7 +107,7 @@ const styles = StyleSheet.create({
     padding: 15,
   },
   footerText: {
-    color: '#7EA6D9', // новый цвет ссылок
+    color: '#7EA6D9',
     fontSize: 16,
     fontFamily: 'IBM-Plex-Mono',
   },
