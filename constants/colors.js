@@ -1,0 +1,68 @@
+// constants/colors.js
+
+const lightTheme = {
+  // Фон и шапка
+  background: '#F3DAD2',
+  header: '#7234ED',
+  backArrow: '#7236A7',
+
+  // Текст
+  text: '#000000',
+  constantText: '#897D72',     // константы из БД
+  inputText: '#474747',       // редактируемые поля
+  sectionTitle: '#747473',    // заголовки разделов (настройки, справка)
+
+  // Поля ввода и границы
+  inputBackground: '#EEEEEE',
+  inputBorder: 'rgba(0, 0, 0, 0.5)',
+
+  // Ссылки и интерактив
+  historyLink: '#7EA6D9',
+  link: '#7EA6D9',            // для "Политика конфиденциальности"
+
+  // Кнопки
+  primaryButton: '#8660C9',   // "Рассчитать", "Новый расчёт", "Очистить кэш"
+  secondaryButton: '#B1B1B1', // неактивное состояние
+  exportButton: '#9E81F6',
+
+  // Оценка риска
+  risk: {
+    low: '#52BC6A',
+    medium: '#F3CC56',
+    high: '#BD3F4B',
+  },
+
+  // График
+  chart: {
+    sp: '#7289F8',   // СП 121.13330
+    tsn: '#FF8652',  // ТСН МФ-97 МО
+  },
+
+  // История расчётов
+  tag: '#7234ED',     // фон тегов ИГЭ и df
+  noResults: '#747473',
+  clearHistory: '#BD3F4B',
+};
+
+const darkTheme = {
+  ...lightTheme,
+  background: '#2B2B2B',
+  header: '#5173E2',
+  text: '#FFFFFF',
+  inputBackground: '#3A3A3A',
+  inputBorder: 'rgba(255, 255, 255, 0.3)',
+  sectionTitle: '#AAAAAA',
+  primaryButton: '#5173E2',
+  secondaryButton: '#444444',
+  link: '#9EB6F6',
+};
+
+// Для использования в компонентах
+export default {
+  light: lightTheme,
+  dark: darkTheme,
+  // Добавляем прямое обращение к light теме для текущей реализации
+  ...lightTheme,
+  risk: lightTheme.risk,
+  chart: lightTheme.chart,
+};
