@@ -1,4 +1,3 @@
-// ResultScreen.js
 import React, { useEffect, useContext } from 'react';
 import {
   View,
@@ -12,6 +11,9 @@ import { ThemeContext } from '../context/ThemeContext';
 import colors from '../constants/colors.js';
 import { BarChart } from 'react-native-chart-kit';
 import { HistoryStorage } from '../utils/historyStorage';
+import { generatePDF } from '../utils/pdfGenerator';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 
 const ResultScreen = ({ route, navigation }) => {
   const { theme } = useContext(ThemeContext);
@@ -33,6 +35,14 @@ const ResultScreen = ({ route, navigation }) => {
           thickness: inputData.thickness,
           density: inputData.density,
           moisture: inputData.moisture,
+          subsoilName: inputData.subsoilName,
+          t0: inputData.t0,
+          pd: inputData.pd,
+          w: inputData.w,
+          wp: inputData.wp,
+          ip: inputData.ip,
+          tcp: inputData.tcp,
+          tf: inputData.tf,
         });
       } catch (error) {
         console.error('Error saving to history:', error);
@@ -83,8 +93,48 @@ const ResultScreen = ({ route, navigation }) => {
   };
 
   const handleExport = async () => {
-    Alert.alert('Экспорт', 'Функция экспорта в PDF будет реализована позже');
-    // TODO: Реализовать экспорт в PDF
+    try {
+      // Создаем данные для PDF
+      const pdfData = {
+        date: new Date().toLocaleDateString('ru-RU'),
+        inputData: {
+          selectedIGE: inputData.selectedIGE || 'Не указан',
+          lambdaF: inputData.lambdaF || 'Не указано',
+          cF: inputData.cF || 'Не указано',
+          thickness: inputData.thickness || 'Не указано',
+          density: inputData.density || 'Не указано',
+          moisture: inputData.moisture || 'Не указано',
+          subsoilName: inputData.subsoilName || 'Не указано',
+          t0: inputData.t0 || 'Не указано',
+          pd: inputData.pd || 'Не указано',
+          w: inputData.w || 'Не указано',
+          wp: inputData.wp || 'Не указано',
+          ip: inputData.ip || 'Не указано',
+          tcp: inputData.tcp || 'Не указано',
+          tf: inputData.tf || 'Не указано',
+        },
+        result: {
+          df: dfSP.toFixed(2),
+          riskLevel: riskLevel,
+          dfSP: dfSP.toFixed(2),
+          dfTSN: dfTSN.toFixed(2),
+        },
+      };
+
+      // Генерируем PDF
+      const pdfPath = await generatePDF(pdfData);
+
+      // Открываем диалог分享
+      await Sharing.shareAsync(pdfPath, {
+        mimeType: 'application/pdf',
+        dialogTitle: 'Сохранить отчёт FrostRise',
+        UTI: 'com.adobe.pdf'
+      });
+
+    } catch (error) {
+      console.error('PDF Export Error:', error);
+      Alert.alert('Ошибка', 'Не удалось создать PDF отчёт');
+    }
   };
 
   const handleNewCalculation = () => {
