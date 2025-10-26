@@ -1,5 +1,5 @@
 // screens/HelpScreen.js
-import React from 'react';
+import React, { useContext } from 'react';
 import {
   View,
   Text,
@@ -8,10 +8,14 @@ import {
   Alert,
   ScrollView,
 } from 'react-native';
+import { ThemeContext } from '../context/ThemeContext';
 import colors from '../constants/colors';
 import { CONFIG } from '../constants/config';
 
 const HelpScreen = ({ navigation }) => {
+  const { theme } = useContext(ThemeContext);
+  const currentColors = colors[theme] || colors.light;
+
   const showPrivacyPolicy = () => {
     Alert.alert(
       'Политика конфиденциальности',
@@ -22,14 +26,14 @@ const HelpScreen = ({ navigation }) => {
 
   return (
     <ScrollView 
-      style={styles.container}
+      style={[styles.container, { backgroundColor: currentColors.background }]}
       contentContainerStyle={styles.contentContainer}
       showsVerticalScrollIndicator={false}
     >
       {/* Методика расчета */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Методика расчета:</Text>
-        <Text style={styles.text}>
+        <Text style={[styles.sectionTitle, { color: currentColors.sectionTitle }]}>Методика расчета:</Text>
+        <Text style={[styles.text, { color: currentColors.text }]}>
           Адаптированная методика ТСН МФ-97 МО, учитывающая нагрузку от сооружения.
           Позволяет избежать завышенных расчетов по СП 121.13330.2012.
         </Text>
@@ -37,16 +41,16 @@ const HelpScreen = ({ navigation }) => {
 
       {/* Авторы */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Авторы:</Text>
-        <Text style={styles.text}>Разработчик: Шишкина М.В.</Text>
-        <Text style={styles.text}>Научный руководитель: Шишкин В.Я.</Text>
-        <Text style={styles.text}>Дизайнер: Шишкина Н.В.</Text>
+        <Text style={[styles.sectionTitle, { color: currentColors.sectionTitle }]}>Авторы:</Text>
+        <Text style={[styles.text, { color: currentColors.text }]}>Разработчик: Шишкина М.В.</Text>
+        <Text style={[styles.text, { color: currentColors.text }]}>Научный руководитель: Шишкин В.Я.</Text>
+        <Text style={[styles.text, { color: currentColors.text }]}>Дизайнер: Шишкина Н.В.</Text>
       </View>
 
       {/* Контакты */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Контакты:</Text>
-        <Text style={styles.text}>example@university.ru</Text>
+        <Text style={[styles.sectionTitle, { color: currentColors.sectionTitle }]}>Контакты:</Text>
+        <Text style={[styles.text, { color: currentColors.text }]}>example@university.ru</Text>
       </View>
 
       {/* Политика конфиденциальности */}
@@ -55,15 +59,15 @@ const HelpScreen = ({ navigation }) => {
           style={styles.privacyLink}
           onPress={showPrivacyPolicy}
         >
-          <Text style={styles.linkText}>Политика конфиденциальности</Text>
+          <Text style={[styles.linkText, { color: currentColors.link }]}>Политика конфиденциальности</Text>
         </TouchableOpacity>
       </View>
 
       {/* Подвал */}
       <View style={styles.footer}>
-        <Text style={styles.footerText}>© 2025 FrostRise</Text>
-        <Text style={styles.footerText}>Версия: {CONFIG.VERSION}</Text>
-        <Text style={styles.footerText}>Обновление: {CONFIG.UPDATE_DATE}</Text>
+        <Text style={[styles.footerText, { color: currentColors.text }]}>© 2025 FrostRise</Text>
+        <Text style={[styles.footerText, { color: currentColors.text }]}>Версия: {CONFIG.VERSION}</Text>
+        <Text style={[styles.footerText, { color: currentColors.text }]}>Обновление: {CONFIG.UPDATE_DATE}</Text>
       </View>
     </ScrollView>
   );
@@ -72,11 +76,10 @@ const HelpScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.light.background,
   },
   contentContainer: {
     padding: 20,
-    paddingBottom: 60, // Увеличил отступ снизу
+    paddingBottom: 60,
   },
   section: {
     marginBottom: 25,
@@ -85,13 +88,11 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 8,
-    color: colors.light.sectionTitle,
     fontFamily: 'IBM-Plex-Mono-Bold',
   },
   text: {
     fontSize: 16,
     lineHeight: 22,
-    color: colors.light.text,
     fontFamily: 'IBM-Plex-Mono-Regular',
   },
   privacySection: {
@@ -101,12 +102,10 @@ const styles = StyleSheet.create({
   privacyLink: {
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: colors.light.link,
   },
   linkText: {
     textAlign: 'center',
     textDecorationLine: 'underline',
-    color: colors.light.link,
     fontFamily: 'IBM-Plex-Mono-Regular',
     fontSize: 16,
   },
@@ -117,7 +116,6 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 14,
-    color: colors.light.text,
     fontFamily: 'IBM-Plex-Mono-Regular',
     marginBottom: 4,
   },

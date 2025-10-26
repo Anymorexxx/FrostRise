@@ -1,33 +1,38 @@
-import React from 'react';
+// screens/HomeScreen.js
+import React, { useContext } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { ThemeContext } from '../context/ThemeContext';
 import colors from '../constants/colors';
 import { CONFIG } from '../constants/config';
 
 export default function HomeScreen({ navigation }) {
+  const { theme } = useContext(ThemeContext);
+  const currentColors = colors[theme] || colors.light;
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: currentColors.background }]}>
       {/* Шапка с кнопкой настроек */}
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.settingsButton}
           onPress={() => navigation.navigate('Settings')}
         >
-          <Text style={styles.headerText}>Настройки</Text>
+          <Text style={[styles.headerText, { color: currentColors.link }]}>Настройки</Text>
         </TouchableOpacity>
       </View>
 
       {/* Основной контент */}
       <View style={styles.content}>
-        <Text style={styles.title}>FrostRise</Text>
-        <Text style={styles.subtitle}>
+        <Text style={[styles.title, { color: currentColors.text }]}>FrostRise</Text>
+        <Text style={[styles.subtitle, { color: currentColors.text }]}>
           Точный расчет пучения грунта для дорог, фундаментов и аэродромов
         </Text>
 
         <TouchableOpacity
-          style={styles.button}
+          style={[styles.button, { backgroundColor: currentColors.primaryButton }]}
           onPress={() => navigation.navigate('Input')}
         >
-          <Text style={styles.buttonText}>Новый расчёт</Text>
+          <Text style={[styles.buttonText, { color: currentColors.text }]}>Новый расчёт</Text>
         </TouchableOpacity>
       </View>
 
@@ -37,7 +42,7 @@ export default function HomeScreen({ navigation }) {
           style={styles.helpButton}
           onPress={() => navigation.navigate('Help')}
         >
-          <Text style={styles.footerText}>Справка</Text>
+          <Text style={[styles.footerText, { color: currentColors.link }]}>Справка</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -47,7 +52,6 @@ export default function HomeScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.light.background,
   },
   header: {
     paddingTop: 60,
@@ -59,7 +63,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   headerText: {
-    color: colors.light.link,
     fontSize: 16,
     fontFamily: 'IBM-Plex-Mono',
   },
@@ -68,14 +71,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 20,
-    marginTop: -40, // Поднимаем контент немного выше
+    marginTop: -40,
   },
   title: {
     fontSize: 32,
     fontWeight: 'bold',
     marginBottom: 10,
     textAlign: 'center',
-    color: colors.light.text,
     fontFamily: 'IBM-Plex-Mono-Bold',
   },
   subtitle: {
@@ -83,11 +85,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 30,
     lineHeight: 22,
-    color: colors.light.text,
     fontFamily: 'IBM-Plex-Mono',
   },
   button: {
-    backgroundColor: colors.light.primaryButton,
     paddingVertical: 15,
     paddingHorizontal: 40,
     borderRadius: 8,
@@ -95,7 +95,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   buttonText: {
-    color: colors.light.text,
     fontSize: 18,
     fontWeight: '600',
     fontFamily: 'IBM-Plex-Mono-Bold',
@@ -110,12 +109,10 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   footerText: {
-    color: colors.light.link,
     fontSize: 16,
     fontFamily: 'IBM-Plex-Mono',
   },
   versionText: {
-    color: colors.light.sectionTitle,
     fontSize: 12,
     fontFamily: 'IBM-Plex-Mono',
   },

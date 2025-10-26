@@ -1,5 +1,5 @@
 // screens/HistoryScreen.js
-import React, { useState } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import {
   View,
   Text,
@@ -9,46 +9,51 @@ import {
   Alert,
   TextInput,
 } from 'react-native';
+import { ThemeContext } from '../context/ThemeContext';
 import colors from '../constants/colors';
+import { HistoryStorage } from '../utils/historyStorage';
 
 const HistoryScreen = ({ navigation }) => {
-  // Пример данных (в реальном проекте — из SQLite)
+  const { theme } = useContext(ThemeContext);
+  const currentColors = colors[theme] || colors.light;
+
   const [searchQuery, setSearchQuery] = useState('');
-  const [history, setHistory] = useState([
-    {
-      id: 1,
-      date: '12.04.2025',
-      igE: '14_1',
-      df: '0.8 м',
-    },
-    {
-      id: 2,
-      date: '10.04.2025',
-      igE: '11_2',
-      df: '0.65 м',
-    },
-    {
-      id: 3,
-      date: '08.04.2025',
-      igE: '13_1',
-      df: '0.72 м',
-    },
-  ]);
+  const [history, setHistory] = useState([]);
+
+  // Загрузка истории при монтировании
+  useEffect(() => {
+    loadHistory();
+  }, []);
+
+  const loadHistory = async () => {
+    try {
+      const savedHistory = await HistoryStorage.getHistory();
+      setHistory(savedHistory);
+    } catch (error) {
+      Alert.alert('Ошибка', 'Не удалось загрузить историю');
+    }
+  };
 
   const filteredHistory = history.filter(item =>
-    item.igE.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    item.date.includes(searchQuery)
+    item.igE?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    item.date?.includes(searchQuery) ||
+    item.df?.toString().includes(searchQuery)
   );
 
   const handleView = (item) => {
-    Alert.alert('Просмотр', `Дата: ${item.date}\nИГЭ: ${item.igE}\ndf: ${item.df}`);
+    Alert.alert(
+      'Детали расчёта',
+      `Дата: ${item.date}\nИГЭ: ${item.igE}\ndf: ${item.df}\nТолщина: ${item.thickness} м\nПлотность: ${item.density} кг/м³`,
+      [{ text: 'OK' }]
+    );
   };
 
   const handleExport = (item) => {
     Alert.alert('Экспорт', `Экспорт расчёта ${item.id} в PDF...`);
+    // Здесь будет вызов функции экспорта в PDF
   };
 
-  const handleClear = () => {
+  const handleClear = async () => {
     Alert.alert(
       'Очистить историю',
       'Вы уверены, что хотите удалить всю историю расчётов?',
@@ -57,25 +62,45 @@ const HistoryScreen = ({ navigation }) => {
         {
           text: 'Очистить',
           style: 'destructive',
-          onPress: () => setHistory([]),
+          onPress: async () => {
+            try {
+              await HistoryStorage.clearHistory();
+              setHistory([]);
+              Alert.alert('Успех', 'История очищена');
+            } catch (error) {
+              Alert.alert('Ошибка', 'Не удалось очистить историю');
+            }
+          },
         },
       ]
     );
   };
 
+  const handleDeleteItem = async (id) => {
+    try {
+      await HistoryStorage.deleteCalculation(id);
+      setHistory(history.filter(item => item.id !== id));
+      Alert.alert('Успех', 'Расчёт удалён');
+    } catch (error) {
+      Alert.alert('Ошибка', 'Не удалось удалить расчёт');
+    }
+  };
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: currentColors.background }]}>
       {/* Поиск в iOS стиле с лупой */}
-      <View style={styles.searchContainer}>
+      <View style={[styles.searchContainer, { 
+        backgroundColor: currentColors.inputBackground 
+      }]}>
         <View style={styles.searchIcon}>
           <Text style={styles.searchIconText}>🔍</Text>
         </View>
         <TextInput
-          style={styles.searchInput}
+          style={[styles.searchInput, { color: currentColors.text }]}
           placeholder="Поиск по ИГЭ или дате..."
           value={searchQuery}
           onChangeText={setSearchQuery}
-          placeholderTextColor={colors.light.constantText}
+          placeholderTextColor={currentColors.constantText}
           clearButtonMode="while-editing"
         />
       </View>
@@ -83,46 +108,57 @@ const HistoryScreen = ({ navigation }) => {
       {/* Список истории */}
       <FlatList
         data={filteredHistory}
-        keyExtractor={(item) => item.id.toString()}
+        keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <View style={styles.historyItem}>
-            <Text style={styles.date}>{item.date}</Text>
+          <View style={[styles.historyItem, { 
+            backgroundColor: currentColors.inputBackground,
+            borderColor: currentColors.inputBorder 
+          }]}>
+            <Text style={[styles.date, { color: currentColors.text }]}>{item.date}</Text>
             <View style={styles.resultRow}>
-              <View style={styles.tag}>
-                <Text style={styles.tagText}>{item.igE}</Text>
+              <View style={[styles.tag, { backgroundColor: currentColors.tag }]}>
+                <Text style={[styles.tagText, { color: currentColors.text }]}>{item.igE}</Text>
               </View>
-              <View style={styles.tag}>
-                <Text style={styles.tagText}>df = {item.df}</Text>
+              <View style={[styles.tag, { backgroundColor: currentColors.tag }]}>
+                <Text style={[styles.tagText, { color: currentColors.text }]}>df = {item.df}</Text>
               </View>
             </View>
             <View style={styles.buttonRow}>
               <TouchableOpacity
-                style={styles.actionButton}
+                style={[styles.actionButton, { backgroundColor: currentColors.primaryButton }]}
                 onPress={() => handleView(item)}
               >
-                <Text style={styles.buttonText}>Посмотреть</Text>
+                <Text style={[styles.buttonText, { color: currentColors.text }]}>Посмотреть</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={styles.actionButton}
+                style={[styles.actionButton, { backgroundColor: currentColors.exportButton }]}
                 onPress={() => handleExport(item)}
               >
-                <Text style={styles.buttonText}>Экспорт</Text>
+                <Text style={[styles.buttonText, { color: currentColors.text }]}>Экспорт</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.actionButton, styles.deleteButton, { backgroundColor: currentColors.clearHistory }]}
+                onPress={() => handleDeleteItem(item.id)}
+              >
+                <Text style={[styles.buttonText, { color: currentColors.text }]}>Удалить</Text>
               </TouchableOpacity>
             </View>
           </View>
         )}
         ListEmptyComponent={
-          <Text style={styles.noResults}>Больше результатов не найдено</Text>
+          <Text style={[styles.noResults, { color: currentColors.noResults }]}>
+            {history.length === 0 ? 'История расчётов пуста' : 'Больше результатов не найдено'}
+          </Text>
         }
         contentContainerStyle={styles.listContent}
       />
 
       {/* Кнопка Очистить */}
       <TouchableOpacity
-        style={styles.clearButton}
+        style={[styles.clearButton, { backgroundColor: currentColors.clearHistory }]}
         onPress={handleClear}
       >
-        <Text style={styles.buttonText}>Очистить историю</Text>
+        <Text style={[styles.buttonText, { color: currentColors.text }]}>Очистить историю</Text>
       </TouchableOpacity>
     </View>
   );
@@ -131,13 +167,11 @@ const HistoryScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.light.background,
     padding: 20,
   },
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.light.inputBackground,
     borderRadius: 10,
     marginBottom: 20,
     paddingHorizontal: 10,
@@ -153,25 +187,21 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     fontFamily: 'IBM-Plex-Mono-Regular',
-    color: colors.light.text,
     paddingVertical: 0,
   },
   listContent: {
     flexGrow: 1,
   },
   historyItem: {
-    backgroundColor: colors.light.inputBackground,
     borderRadius: 8,
     padding: 15,
     marginBottom: 15,
     borderWidth: 1,
-    borderColor: colors.light.inputBorder,
   },
   date: {
     fontSize: 16,
     fontWeight: 'bold',
     marginBottom: 10,
-    color: colors.light.text,
     fontFamily: 'IBM-Plex-Mono-Bold',
   },
   resultRow: {
@@ -183,10 +213,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
-    backgroundColor: colors.light.tag,
   },
   tagText: {
-    color: colors.light.text,
     fontSize: 14,
     fontFamily: 'IBM-Plex-Mono-Regular',
   },
@@ -198,18 +226,22 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 4,
-    backgroundColor: colors.light.primaryButton,
+    flex: 1,
+    marginHorizontal: 2,
+    alignItems: 'center',
+  },
+  deleteButton: {
+    // Стиль уже задан через backgroundColor
   },
   buttonText: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: 'bold',
-    color: colors.light.text,
     fontFamily: 'IBM-Plex-Mono-Bold',
+    textAlign: 'center',
   },
   noResults: {
     textAlign: 'center',
     marginTop: 20,
-    color: colors.light.noResults,
     fontFamily: 'IBM-Plex-Mono-Regular',
   },
   clearButton: {
@@ -217,7 +249,6 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     borderRadius: 8,
     alignItems: 'center',
-    backgroundColor: colors.light.clearHistory,
   },
 });
 

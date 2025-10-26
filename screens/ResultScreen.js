@@ -1,5 +1,5 @@
 // ResultScreen.js
-import React from 'react';
+import React, { useEffect, useContext } from 'react';
 import {
   View,
   Text,
@@ -8,28 +8,52 @@ import {
   Alert,
   ScrollView,
 } from 'react-native';
+import { ThemeContext } from '../context/ThemeContext';
 import colors from '../constants/colors.js';
 import { BarChart } from 'react-native-chart-kit';
+import { HistoryStorage } from '../utils/historyStorage';
 
 const ResultScreen = ({ route, navigation }) => {
+  const { theme } = useContext(ThemeContext);
+  const currentColors = colors[theme] || colors.light;
+  
   const { inputData } = route.params;
 
   // Пример расчета (в реальном проекте — логика из ТЗ)
   const dfSP = parseFloat(inputData.thickness) + 0.5; // Условный расчет по СП
   const dfTSN = dfSP * 0.8; // Условный расчет по ТСН
 
+  // Сохраняем расчёт в историю при загрузке экрана
+  useEffect(() => {
+    const saveToHistory = async () => {
+      try {
+        await HistoryStorage.saveCalculation({
+          igE: inputData.selectedIGE,
+          df: dfSP.toFixed(2),
+          thickness: inputData.thickness,
+          density: inputData.density,
+          moisture: inputData.moisture,
+        });
+      } catch (error) {
+        console.error('Error saving to history:', error);
+      }
+    };
+
+    saveToHistory();
+  }, []);
+
   // Оценка риска
   let riskLevel = '';
   let riskColor = '';
   if (dfSP < 0.5) {
     riskLevel = 'Низкий риск';
-    riskColor = colors.light.risk.low;
+    riskColor = currentColors.risk.low;
   } else if (dfSP < 1.0) {
     riskLevel = 'Средний риск';
-    riskColor = colors.light.risk.medium;
+    riskColor = currentColors.risk.medium;
   } else {
     riskLevel = 'Высокий риск';
-    riskColor = colors.light.risk.high;
+    riskColor = currentColors.risk.high;
   }
 
   const data = {
@@ -37,17 +61,17 @@ const ResultScreen = ({ route, navigation }) => {
     datasets: [
       {
         data: [dfSP, dfTSN],
-        colors: [(opacity = 1) => colors.light.chart.sp, (opacity = 1) => colors.light.chart.tsn],
+        colors: [(opacity = 1) => currentColors.chart.sp, (opacity = 1) => currentColors.chart.tsn],
       },
     ],
   };
 
   const chartConfig = {
-    backgroundGradientFrom: colors.light.inputBackground,
-    backgroundGradientTo: colors.light.inputBackground,
+    backgroundGradientFrom: currentColors.inputBackground,
+    backgroundGradientTo: currentColors.inputBackground,
     decimalPlaces: 2,
-    color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
-    labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
+    color: (opacity = 1) => currentColors.text,
+    labelColor: (opacity = 1) => currentColors.text,
     style: {
       borderRadius: 16,
     },
@@ -58,8 +82,9 @@ const ResultScreen = ({ route, navigation }) => {
     },
   };
 
-  const handleExportPDF = () => {
-    Alert.alert('Экспорт в PDF', 'Функция пока не реализована.');
+  const handleExport = async () => {
+    Alert.alert('Экспорт', 'Функция экспорта в PDF будет реализована позже');
+    // TODO: Реализовать экспорт в PDF
   };
 
   const handleNewCalculation = () => {
@@ -72,19 +97,22 @@ const ResultScreen = ({ route, navigation }) => {
 
   return (
     <ScrollView 
-      style={styles.container}
+      style={[styles.container, { backgroundColor: currentColors.background }]}
       contentContainerStyle={styles.contentContainer}
       showsVerticalScrollIndicator={false}
     >
       {/* Результат df */}
-      <View style={styles.resultBox}>
-        <Text style={styles.resultText}>df = {dfSP.toFixed(2)} м</Text>
-        <Text style={styles.resultSubtext}>по методике СП 121.13330.2012</Text>
+      <View style={[styles.resultBox, { 
+        backgroundColor: currentColors.inputBackground,
+        borderColor: currentColors.inputBorder 
+      }]}>
+        <Text style={[styles.resultText, { color: currentColors.text }]}>df = {dfSP.toFixed(2)} м</Text>
+        <Text style={[styles.resultSubtext, { color: currentColors.text }]}>по методике СП 121.13330.2012</Text>
       </View>
 
       {/* Блок оценки риска */}
       <View style={[styles.riskBox, { backgroundColor: riskColor }]}>
-        <Text style={styles.riskText}>{riskLevel}</Text>
+        <Text style={[styles.riskText, { color: currentColors.text }]}>{riskLevel}</Text>
       </View>
 
       {/* График */}
@@ -101,34 +129,34 @@ const ResultScreen = ({ route, navigation }) => {
         />
         <View style={styles.legend}>
           <View style={styles.legendItem}>
-            <View style={[styles.legendColor, { backgroundColor: colors.light.chart.sp }]} />
-            <Text style={styles.legendText}>СП 121.13330</Text>
+            <View style={[styles.legendColor, { backgroundColor: currentColors.chart.sp }]} />
+            <Text style={[styles.legendText, { color: currentColors.text }]}>СП 121.13330</Text>
           </View>
           <View style={styles.legendItem}>
-            <View style={[styles.legendColor, { backgroundColor: colors.light.chart.tsn }]} />
-            <Text style={styles.legendText}>ТСН МФ-97 МО</Text>
+            <View style={[styles.legendColor, { backgroundColor: currentColors.chart.tsn }]} />
+            <Text style={[styles.legendText, { color: currentColors.text }]}>ТСН МФ-97 МО</Text>
           </View>
         </View>
       </View>
 
       {/* Кнопки */}
       <TouchableOpacity
-        style={styles.exportButton}
-        onPress={handleExportPDF}
+        style={[styles.exportButton, { backgroundColor: currentColors.exportButton }]}
+        onPress={handleExport}
       >
-        <Text style={styles.buttonText}>Экспорт в PDF</Text>
+        <Text style={[styles.buttonText, { color: currentColors.text }]}>Экспорт в PDF</Text>
       </TouchableOpacity>
 
       <TouchableOpacity
-        style={styles.newCalcButton}
+        style={[styles.newCalcButton, { backgroundColor: currentColors.primaryButton }]}
         onPress={handleNewCalculation}
       >
-        <Text style={styles.buttonText}>Новый расчёт</Text>
+        <Text style={[styles.buttonText, { color: currentColors.text }]}>Новый расчёт</Text>
       </TouchableOpacity>
 
       {/* Ссылка на историю */}
       <TouchableOpacity onPress={handleHistory}>
-        <Text style={styles.historyLink}>История расчётов</Text>
+        <Text style={[styles.historyLink, { color: currentColors.historyLink }]}>История расчётов</Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -137,7 +165,6 @@ const ResultScreen = ({ route, navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.light.background,
   },
   contentContainer: {
     padding: 20,
@@ -148,21 +175,17 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     marginBottom: 20,
-    backgroundColor: colors.light.inputBackground,
-    borderColor: colors.light.inputBorder,
   },
   resultText: {
     fontSize: 20,
     fontWeight: 'bold',
     textAlign: 'center',
-    color: colors.light.text,
     fontFamily: 'IBM-Plex-Mono-Bold',
   },
   resultSubtext: {
     fontSize: 14,
     textAlign: 'center',
     marginTop: 5,
-    color: colors.light.text,
     fontFamily: 'IBM-Plex-Mono-Regular',
   },
   riskBox: {
@@ -171,12 +194,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     marginBottom: 20,
     alignItems: 'center',
-    borderColor: colors.light.inputBorder,
   },
   riskText: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: colors.light.text,
     fontFamily: 'IBM-Plex-Mono-Bold',
   },
   chartContainer: {
@@ -201,7 +222,6 @@ const styles = StyleSheet.create({
   },
   legendText: {
     fontSize: 12,
-    color: colors.light.text,
     fontFamily: 'IBM-Plex-Mono-Regular',
   },
   exportButton: {
@@ -209,25 +229,21 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     marginBottom: 10,
-    backgroundColor: colors.light.exportButton,
   },
   newCalcButton: {
     paddingVertical: 15,
     borderRadius: 8,
     alignItems: 'center',
     marginBottom: 10,
-    backgroundColor: colors.light.primaryButton,
   },
   buttonText: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: colors.light.text,
     fontFamily: 'IBM-Plex-Mono-Bold',
   },
   historyLink: {
     textAlign: 'center',
     textDecorationLine: 'underline',
-    color: colors.light.historyLink,
     fontFamily: 'IBM-Plex-Mono-Regular',
   },
 });

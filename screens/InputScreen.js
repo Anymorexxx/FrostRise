@@ -1,5 +1,5 @@
 // InputScreen.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import {
   View,
   Text,
@@ -11,9 +11,13 @@ import {
   Platform,
   ActionSheetIOS,
 } from 'react-native';
+import { ThemeContext } from '../context/ThemeContext';
 import colors from '../constants/colors.js';
 
 const InputScreen = ({ navigation }) => {
+  const { theme } = useContext(ThemeContext);
+  const currentColors = colors[theme] || colors.light;
+
   const [selectedIGE, setSelectedIGE] = useState('');
   const [selectedIGEName, setSelectedIGEName] = useState('');
   const [lambdaF, setLambdaF] = useState('');
@@ -123,20 +127,23 @@ const InputScreen = ({ navigation }) => {
 
   return (
     <ScrollView 
-      style={styles.container}
+      style={[styles.container, { backgroundColor: currentColors.background }]}
       contentContainerStyle={styles.contentContainer}
       showsVerticalScrollIndicator={false}
     >
       {/* Кнопка выбора ИГЭ в стиле iOS */}
       <View style={styles.igeSelectionContainer}>
         <TouchableOpacity 
-          style={styles.igeSelectionButton}
+          style={[styles.igeSelectionButton, { 
+            backgroundColor: currentColors.inputBackground,
+            borderColor: currentColors.inputBorder 
+          }]}
           onPress={showIGESelection}
         >
-          <Text style={styles.igeSelectionText}>
+          <Text style={[styles.igeSelectionText, { color: currentColors.text }]}>
             {selectedIGE ? selectedIGEName : 'Выберите ИГЭ...'}
           </Text>
-          <Text style={styles.igeSelectionArrow}>▼</Text>
+          <Text style={[styles.igeSelectionArrow, { color: currentColors.constantText }]}>▼</Text>
         </TouchableOpacity>
       </View>
 
@@ -145,19 +152,19 @@ const InputScreen = ({ navigation }) => {
         <>
           {/* λf с единицами измерения */}
           <View style={styles.constantRow}>
-            <Text style={[styles.constantLabel, styles.constantText]}>λf:</Text>
+            <Text style={[styles.constantLabel, { color: currentColors.constantText }]}>λf:</Text>
             <View style={styles.constantValueContainer}>
-              <Text style={styles.constantValue}>{lambdaF}</Text>
-              <Text style={styles.constantUnit}>Вт/(м·°C)</Text>
+              <Text style={[styles.constantValue, { color: currentColors.constantText }]}>{lambdaF}</Text>
+              <Text style={[styles.constantUnit, { color: currentColors.constantText }]}>Вт/(м·°C)</Text>
             </View>
           </View>
 
           {/* Cf с единицами измерения */}
           <View style={styles.constantRow}>
-            <Text style={[styles.constantLabel, styles.constantText]}>Cf:</Text>
+            <Text style={[styles.constantLabel, { color: currentColors.constantText }]}>Cf:</Text>
             <View style={styles.constantValueContainer}>
-              <Text style={styles.constantValue}>{cF}</Text>
-              <Text style={styles.constantUnit}>кДж/(м³·°C)</Text>
+              <Text style={[styles.constantValue, { color: currentColors.constantText }]}>{cF}</Text>
+              <Text style={[styles.constantUnit, { color: currentColors.constantText }]}>кДж/(м³·°C)</Text>
             </View>
           </View>
         </>
@@ -165,133 +172,177 @@ const InputScreen = ({ navigation }) => {
 
       {/* Редактируемые поля - горизонтальное расположение */}
       <View style={styles.inputRow}>
-        <Text style={styles.inputLabel}>Толщина (м)</Text>
+        <Text style={[styles.inputLabel, { color: currentColors.inputText }]}>Толщина (м)</Text>
         <TextInput
-          style={styles.inputField}
+          style={[styles.inputField, { 
+            backgroundColor: currentColors.inputBackground,
+            borderColor: currentColors.inputBorder,
+            color: currentColors.text 
+          }]}
           value={thickness}
           onChangeText={setThickness}
           keyboardType="decimal-pad"
           placeholder="Введите толщину"
-          placeholderTextColor={colors.light.inputText}
+          placeholderTextColor={currentColors.inputText}
         />
       </View>
 
       <View style={styles.inputRow}>
-        <Text style={styles.inputLabel}>Плотность (кг/м³)</Text>
+        <Text style={[styles.inputLabel, { color: currentColors.inputText }]}>Плотность (кг/м³)</Text>
         <TextInput
-          style={styles.inputField}
+          style={[styles.inputField, { 
+            backgroundColor: currentColors.inputBackground,
+            borderColor: currentColors.inputBorder,
+            color: currentColors.text 
+          }]}
           value={density}
           onChangeText={setDensity}
           keyboardType="decimal-pad"
           placeholder="Введите плотность"
-          placeholderTextColor={colors.light.inputText}
+          placeholderTextColor={currentColors.inputText}
         />
       </View>
 
       <View style={styles.inputRow}>
-        <Text style={styles.inputLabel}>Влажность W (д.е.)</Text>
+        <Text style={[styles.inputLabel, { color: currentColors.inputText }]}>Влажность W (д.е.)</Text>
         <TextInput
-          style={styles.inputField}
+          style={[styles.inputField, { 
+            backgroundColor: currentColors.inputBackground,
+            borderColor: currentColors.inputBorder,
+            color: currentColors.text 
+          }]}
           value={moisture}
           onChangeText={setMoisture}
           keyboardType="decimal-pad"
           placeholder="Введите влажность"
-          placeholderTextColor={colors.light.inputText}
+          placeholderTextColor={currentColors.inputText}
         />
       </View>
 
       <View style={styles.inputRow}>
-        <Text style={styles.inputLabel}>Название подстилающего грунта</Text>
+        <Text style={[styles.inputLabel, { color: currentColors.inputText }]}>Название подстилающего грунта</Text>
         <TextInput
-          style={styles.inputField}
+          style={[styles.inputField, { 
+            backgroundColor: currentColors.inputBackground,
+            borderColor: currentColors.inputBorder,
+            color: currentColors.text 
+          }]}
           value={subsoilName}
           onChangeText={setSubsoilName}
           placeholder="Введите название грунта"
-          placeholderTextColor={colors.light.inputText}
+          placeholderTextColor={currentColors.inputText}
         />
       </View>
 
       <View style={styles.inputRow}>
-        <Text style={styles.inputLabel}>t0 (°C)</Text>
+        <Text style={[styles.inputLabel, { color: currentColors.inputText }]}>t0 (°C)</Text>
         <TextInput
-          style={styles.inputField}
+          style={[styles.inputField, { 
+            backgroundColor: currentColors.inputBackground,
+            borderColor: currentColors.inputBorder,
+            color: currentColors.text 
+          }]}
           value={t0}
           onChangeText={setT0}
           keyboardType="decimal-pad"
           placeholder="Введите температуру"
-          placeholderTextColor={colors.light.inputText}
+          placeholderTextColor={currentColors.inputText}
         />
       </View>
 
       <View style={styles.inputRow}>
-        <Text style={styles.inputLabel}>pd (кг/м³)</Text>
+        <Text style={[styles.inputLabel, { color: currentColors.inputText }]}>pd (кг/м³)</Text>
         <TextInput
-          style={styles.inputField}
+          style={[styles.inputField, { 
+            backgroundColor: currentColors.inputBackground,
+            borderColor: currentColors.inputBorder,
+            color: currentColors.text 
+          }]}
           value={pd}
           onChangeText={setPd}
           keyboardType="decimal-pad"
           placeholder="Введите плотность сухого грунта"
-          placeholderTextColor={colors.light.inputText}
+          placeholderTextColor={currentColors.inputText}
         />
       </View>
 
       <View style={styles.inputRow}>
-        <Text style={styles.inputLabel}>W (д.е.)</Text>
+        <Text style={[styles.inputLabel, { color: currentColors.inputText }]}>W (д.е.)</Text>
         <TextInput
-          style={styles.inputField}
+          style={[styles.inputField, { 
+            backgroundColor: currentColors.inputBackground,
+            borderColor: currentColors.inputBorder,
+            color: currentColors.text 
+          }]}
           value={w}
           onChangeText={setW}
           keyboardType="decimal-pad"
           placeholder="Введите влажность"
-          placeholderTextColor={colors.light.inputText}
+          placeholderTextColor={currentColors.inputText}
         />
       </View>
 
       <View style={styles.inputRow}>
-        <Text style={styles.inputLabel}>Wp</Text>
+        <Text style={[styles.inputLabel, { color: currentColors.inputText }]}>Wp</Text>
         <TextInput
-          style={styles.inputField}
+          style={[styles.inputField, { 
+            backgroundColor: currentColors.inputBackground,
+            borderColor: currentColors.inputBorder,
+            color: currentColors.text 
+          }]}
           value={wp}
           onChangeText={setWp}
           keyboardType="decimal-pad"
           placeholder="Введите Wp"
-          placeholderTextColor={colors.light.inputText}
+          placeholderTextColor={currentColors.inputText}
         />
       </View>
 
       <View style={styles.inputRow}>
-        <Text style={styles.inputLabel}>Jp</Text>
+        <Text style={[styles.inputLabel, { color: currentColors.inputText }]}>Jp</Text>
         <TextInput
-          style={styles.inputField}
+          style={[styles.inputField, { 
+            backgroundColor: currentColors.inputBackground,
+            borderColor: currentColors.inputBorder,
+            color: currentColors.text 
+          }]}
           value={ip}
           onChangeText={setIp}
           keyboardType="decimal-pad"
           placeholder="Введите Jp"
-          placeholderTextColor={colors.light.inputText}
+          placeholderTextColor={currentColors.inputText}
         />
       </View>
 
       <View style={styles.inputRow}>
-        <Text style={styles.inputLabel}>Tcp (°C)</Text>
+        <Text style={[styles.inputLabel, { color: currentColors.inputText }]}>Tcp (°C)</Text>
         <TextInput
-          style={styles.inputField}
+          style={[styles.inputField, { 
+            backgroundColor: currentColors.inputBackground,
+            borderColor: currentColors.inputBorder,
+            color: currentColors.text 
+          }]}
           value={tcp}
           onChangeText={setTcp}
           keyboardType="decimal-pad"
           placeholder="Введите среднюю температуру"
-          placeholderTextColor={colors.light.inputText}
+          placeholderTextColor={currentColors.inputText}
         />
       </View>
 
       <View style={styles.inputRow}>
-        <Text style={styles.inputLabel}>Tf</Text>
+        <Text style={[styles.inputLabel, { color: currentColors.inputText }]}>Tf</Text>
         <TextInput
-          style={styles.inputField}
+          style={[styles.inputField, { 
+            backgroundColor: currentColors.inputBackground,
+            borderColor: currentColors.inputBorder,
+            color: currentColors.text 
+          }]}
           value={tf}
           onChangeText={setTf}
           keyboardType="decimal-pad"
           placeholder="Введите Tf"
-          placeholderTextColor={colors.light.inputText}
+          placeholderTextColor={currentColors.inputText}
         />
       </View>
 
@@ -299,17 +350,19 @@ const InputScreen = ({ navigation }) => {
       <TouchableOpacity
         style={[
           styles.calculateButton,
-          { backgroundColor: isFormValid() ? colors.light.primaryButton : colors.light.secondaryButton },
+          { 
+            backgroundColor: isFormValid() ? currentColors.primaryButton : currentColors.secondaryButton 
+          },
         ]}
         onPress={handleCalculate}
         disabled={!isFormValid()}
       >
-        <Text style={styles.buttonText}>Рассчитать</Text>
+        <Text style={[styles.buttonText, { color: currentColors.text }]}>Рассчитать</Text>
       </TouchableOpacity>
 
       {/* Ссылка на историю */}
       <TouchableOpacity onPress={() => navigation.navigate('History')}>
-        <Text style={styles.historyLink}>История расчётов</Text>
+        <Text style={[styles.historyLink, { color: currentColors.historyLink }]}>История расчётов</Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -318,13 +371,11 @@ const InputScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.light.background,
   },
   contentContainer: {
     padding: 20,
     paddingBottom: 40,
   },
-  // Стили для выбора ИГЭ в стиле iOS
   igeSelectionContainer: {
     marginBottom: 25,
     alignItems: 'center',
@@ -333,9 +384,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: colors.light.inputBackground,
     borderWidth: 1,
-    borderColor: colors.light.inputBorder,
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -351,16 +400,13 @@ const styles = StyleSheet.create({
   },
   igeSelectionText: {
     fontSize: 16,
-    color: colors.light.text,
     fontFamily: 'IBM-Plex-Mono-Regular',
     flex: 1,
   },
   igeSelectionArrow: {
     fontSize: 12,
-    color: colors.light.constantText,
     marginLeft: 8,
   },
-  // Стили для констант
   constantRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -374,9 +420,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     flex: 1,
   },
-  constantText: {
-    color: colors.light.constantText,
-  },
   constantValueContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -385,18 +428,15 @@ const styles = StyleSheet.create({
   },
   constantValue: {
     fontSize: 16,
-    color: colors.light.constantText,
     fontFamily: 'IBM-Plex-Mono-Regular',
     marginRight: 8,
     fontWeight: '500',
   },
   constantUnit: {
     fontSize: 14,
-    color: colors.light.constantText,
     fontFamily: 'IBM-Plex-Mono-Regular',
     opacity: 0.8,
   },
-  // Стили для редактируемых полей (горизонтальное расположение)
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -405,20 +445,16 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: 16,
-    color: colors.light.inputText,
     fontFamily: 'IBM-Plex-Mono-Regular',
     fontWeight: '500',
     flex: 1,
   },
   inputField: {
     height: 44,
-    backgroundColor: colors.light.inputBackground,
     borderWidth: 1,
-    borderColor: colors.light.inputBorder,
     borderRadius: 8,
     paddingHorizontal: 12,
     fontFamily: 'IBM-Plex-Mono-Regular',
-    color: colors.light.text,
     fontSize: 16,
     flex: 2,
     ...Platform.select({
@@ -447,14 +483,12 @@ const styles = StyleSheet.create({
   buttonText: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: colors.light.text,
     fontFamily: 'IBM-Plex-Mono-Bold',
   },
   historyLink: {
     marginTop: 20,
     textAlign: 'center',
     textDecorationLine: 'underline',
-    color: colors.light.historyLink,
     fontFamily: 'IBM-Plex-Mono-Regular',
     fontSize: 16,
   },

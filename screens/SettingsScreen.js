@@ -1,5 +1,5 @@
 // screens/SettingsScreen.js
-import React, { useState } from 'react';
+import React, { useContext } from 'react';
 import {
   View,
   Text,
@@ -8,21 +8,24 @@ import {
   Alert,
   ScrollView,
 } from 'react-native';
+import { ThemeContext } from '../context/ThemeContext';
 import colors from '../constants/colors';
 import { CONFIG } from '../constants/config';
 
 const SettingsScreen = ({ navigation }) => {
-  const [theme, setTheme] = useState('Светлая');
-  const [language, setLanguage] = useState('Русский');
+  const { theme, toggleTheme } = useContext(ThemeContext);
+  const [language, setLanguage] = React.useState('Русский');
+
+  const currentColors = colors[theme] || colors.light;
 
   const handleThemeChange = () => {
     Alert.alert(
       'Тема',
       'Выберите тему:',
       [
-        { text: 'Светлая', onPress: () => setTheme('Светлая') },
-        { text: 'Тёмная', onPress: () => setTheme('Тёмная') },
-        { text: 'Системная', onPress: () => setTheme('Системная') },
+        { text: 'Светлая', onPress: () => toggleTheme('light') },
+        { text: 'Тёмная', onPress: () => toggleTheme('dark') },
+        { text: 'Системная', onPress: () => toggleTheme('system') },
         { text: 'Отмена', style: 'cancel' },
       ]
     );
@@ -42,7 +45,7 @@ const SettingsScreen = ({ navigation }) => {
   const handleClearCache = () => {
     Alert.alert(
       'Очистить кэш',
-      'Вы уверены, что хотите очистить кэш приложения? Это может ускорить работу, но удалит временные данные.',
+      'Вы уверены, что хотите очистить кэш приложения?',
       [
         { text: 'Отмена', style: 'cancel' },
         {
@@ -54,39 +57,55 @@ const SettingsScreen = ({ navigation }) => {
     );
   };
 
+  const getThemeName = () => {
+    switch (theme) {
+      case 'light': return 'Светлая';
+      case 'dark': return 'Тёмная';
+      case 'system': return 'Системная';
+      default: return 'Светлая';
+    }
+  };
+
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView style={[styles.container, { backgroundColor: currentColors.background }]}>
       {/* Внешний вид */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Внешний вид</Text>
+        <Text style={[styles.sectionTitle, { color: currentColors.sectionTitle }]}>Внешний вид</Text>
         <TouchableOpacity
-          style={styles.settingItem}
+          style={[styles.settingItem, { 
+            backgroundColor: currentColors.inputBackground,
+            borderColor: currentColors.inputBorder 
+          }]}
           onPress={handleThemeChange}
         >
-          <Text style={styles.settingLabel}>Тема</Text>
-          <Text style={styles.settingValue}>{theme}</Text>
+          <Text style={[styles.settingLabel, { color: currentColors.text }]}>Тема</Text>
+          <Text style={[styles.settingValue, { color: currentColors.text }]}>{getThemeName()}</Text>
         </TouchableOpacity>
       </View>
 
       {/* Системные */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Системные</Text>
+        <Text style={[styles.sectionTitle, { color: currentColors.sectionTitle }]}>Системные</Text>
         <TouchableOpacity
-          style={styles.settingItem}
+          style={[styles.settingItem, { 
+            backgroundColor: currentColors.inputBackground,
+            borderColor: currentColors.inputBorder 
+          }]}
           onPress={handleLanguageChange}
         >
-          <Text style={styles.settingLabel}>Язык</Text>
-          <Text style={styles.settingValue}>{language}</Text>
+          <Text style={[styles.settingLabel, { color: currentColors.text }]}>Язык</Text>
+          <Text style={[styles.settingValue, { color: currentColors.text }]}>{language}</Text>
         </TouchableOpacity>
       </View>
 
       {/* Очистить кэш */}
       <TouchableOpacity
-        style={styles.clearCacheButton}
+        style={[styles.clearCacheButton, { backgroundColor: currentColors.primaryButton }]}
         onPress={handleClearCache}
       >
-        <Text style={styles.buttonText}>Очистить кэш</Text>
+        <Text style={[styles.buttonText, { color: currentColors.text }]}>Очистить кэш</Text>
       </TouchableOpacity>
+
     </ScrollView>
   );
 };
@@ -94,7 +113,6 @@ const SettingsScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.light.background,
     padding: 20,
   },
   section: {
@@ -104,27 +122,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: 'bold',
     marginBottom: 10,
-    color: colors.light.sectionTitle,
     fontFamily: 'IBM-Plex-Mono-Bold',
   },
   settingItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    backgroundColor: colors.light.inputBackground,
     padding: 10,
     borderRadius: 5,
     marginBottom: 10,
     borderWidth: 1,
-    borderColor: colors.light.inputBorder,
   },
   settingLabel: {
     fontSize: 14,
-    color: colors.light.text,
     fontFamily: 'IBM-Plex-Mono-Regular',
   },
   settingValue: {
     fontSize: 14,
-    color: colors.light.text,
     fontFamily: 'IBM-Plex-Mono-Regular',
   },
   clearCacheButton: {
@@ -132,12 +145,10 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     borderRadius: 8,
     alignItems: 'center',
-    backgroundColor: colors.light.primaryButton,
   },
   buttonText: {
     fontSize: 18,
     fontWeight: 'bold',
-    color: colors.light.text,
     fontFamily: 'IBM-Plex-Mono-Bold',
   },
   versionContainer: {
@@ -147,7 +158,6 @@ const styles = StyleSheet.create({
   },
   versionText: {
     fontSize: 12,
-    color: colors.light.text,
     fontFamily: 'IBM-Plex-Mono-Regular',
   },
 });

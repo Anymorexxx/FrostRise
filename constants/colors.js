@@ -45,24 +45,44 @@ const lightTheme = {
 };
 
 const darkTheme = {
-  ...lightTheme,
   background: '#2B2B2B',
   header: '#5173E2',
+  backArrow: '#9EB6F6',
+  
   text: '#FFFFFF',
+  constantText: '#AAAAAA',
+  inputText: '#CCCCCC',
+  sectionTitle: '#AAAAAA',
+
   inputBackground: '#3A3A3A',
   inputBorder: 'rgba(255, 255, 255, 0.3)',
-  sectionTitle: '#AAAAAA',
+
+  historyLink: '#7EA6D9',
+  link: '#9EB6F6',
+
   primaryButton: '#5173E2',
   secondaryButton: '#444444',
-  link: '#9EB6F6',
+  exportButton: '#7289F8',
+
+  risk: {
+    low: '#52BC6A',
+    medium: '#F3CC56',
+    high: '#BD3F4B',
+  },
+
+  chart: {
+    sp: '#7289F8',
+    tsn: '#FF8652',
+  },
+
+  tag: '#5173E2',
+  noResults: '#AAAAAA',
+  clearHistory: '#BD3F4B',
 };
 
 // Для использования в компонентах
 export default {
   light: lightTheme,
   dark: darkTheme,
-  // Добавляем прямое обращение к light теме для текущей реализации
-  ...lightTheme,
-  risk: lightTheme.risk,
-  chart: lightTheme.chart,
+  system: lightTheme, // system будет использовать light как fallback
 };
