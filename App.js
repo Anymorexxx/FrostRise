@@ -1,120 +1,95 @@
 // App.js
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ActivityIndicator } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
 import * as Font from 'expo-font';
+import { View, ActivityIndicator } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { ThemeProvider, useTheme } from './context/ThemeContext';
+import colors from './constants/colors';
 
-export default function App() {
+// Экраны
+import HomeScreen from './screens/HomeScreen';
+import InputScreen from './screens/InputScreen';
+import ResultScreen from './screens/ResultScreen';
+import HistoryScreen from './screens/HistoryScreen';
+import HelpScreen from './screens/HelpScreen';
+import SettingsScreen from './screens/SettingsScreen';
+
+const Stack = createStackNavigator();
+
+// Создаём отдельный компонент для навигатора с темой
+function ThemedNavigator() {
+  const { theme } = useTheme();
+  const currentColors = colors[theme] || colors.light; // fallback на light тему
+
+  return (
+    <Stack.Navigator
+      initialRouteName="Home"
+      screenOptions={{
+        headerStyle: {
+          backgroundColor: currentColors.header,
+        },
+        headerTintColor: currentColors.text,
+        headerTitleStyle: {
+          fontFamily: 'IBM-Plex-Mono-Bold',
+          fontSize: 18,
+        },
+        headerBackTitle: 'Назад',
+      }}
+    >
+      <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="Input" component={InputScreen} options={{ title: 'Ввод параметров' }} />
+      <Stack.Screen name="Result" component={ResultScreen} options={{ title: 'Результаты расчёта' }} />
+      <Stack.Screen name="History" component={HistoryScreen} options={{ title: 'История расчётов' }} />
+      <Stack.Screen name="Help" component={HelpScreen} options={{ title: 'О приложении' }} />
+      <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Настройки' }} />
+    </Stack.Navigator>
+  );
+}
+
+// Компонент загрузки шрифтов
+function FontLoader({ children }) {
   const [fontsLoaded, setFontsLoaded] = useState(false);
 
-  // Загрузка шрифтов
   useEffect(() => {
     async function loadFonts() {
-      await Font.loadAsync({
-        'IBM-Plex-Mono': require('./assets/fonts/IBMPlexMono-Regular.ttf'),
-        'IBM-Plex-Mono-Bold': require('./assets/fonts/IBMPlexMono-Bold.ttf'),
-      });
-      setFontsLoaded(true);
+      try {
+        await Font.loadAsync({
+          'IBM-Plex-Mono': require('./assets/fonts/IBMPlexMono-Regular.ttf'),
+          'IBM-Plex-Mono-Bold': require('./assets/fonts/IBMPlexMono-Bold.ttf'),
+        });
+        setFontsLoaded(true);
+      } catch (e) {
+        console.warn('Error loading fonts:', e);
+        setFontsLoaded(true); // Продолжаем даже если шрифты не загрузились
+      }
     }
+
     loadFonts();
   }, []);
 
   if (!fontsLoaded) {
     return (
-      <SafeAreaView style={styles.container}>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
         <ActivityIndicator size="large" color="#000000" />
-      </SafeAreaView>
+      </View>
     );
   }
 
-  return (
-    <SafeAreaView style={styles.container}>
-      {/* Верхняя часть: Настройки */}
-      <View style={styles.header}>
-        <TouchableOpacity>
-          <Text style={styles.headerText}>Настройки</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Центральная часть: Логотип и слоган */}
-      <View style={styles.content}>
-        <Text style={styles.title}>FrostRise</Text>
-        <Text style={styles.subtitle}>
-          Точный расчет пучения грунта для дорог, фундаментов и аэродромов
-        </Text>
-
-        {/* Кнопка "Новый расчёт" */}
-        <TouchableOpacity style={styles.button}>
-          <Text style={styles.buttonText}>Новый расчёт</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Нижняя часть: Справка */}
-      <View style={styles.footer}>
-        <TouchableOpacity>
-          <Text style={styles.footerText}>Справка</Text>
-        </TouchableOpacity>
-      </View>
-    </SafeAreaView>
-  );
+  return children;
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F3DAD2', // новый фон
-  },
-  header: {
-    alignItems: 'flex-end',
-    padding: 15,
-  },
-  headerText: {
-    color: '#7EA6D9', // новый цвет ссылок
-    fontSize: 16,
-    fontFamily: 'IBM-Plex-Mono', // кастомный шрифт
-  },
-  content: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    textAlign: 'center',
-    color: '#000000', // черный текст
-    fontFamily: 'IBM-Plex-Mono-Bold', // жирный шрифт
-  },
-  subtitle: {
-    fontSize: 16,
-    textAlign: 'center',
-    marginBottom: 30,
-    lineHeight: 22,
-    color: '#000000',
-    fontFamily: 'IBM-Plex-Mono',
-  },
-  button: {
-    backgroundColor: '#8660C9', // новый цвет кнопки
-    paddingVertical: 15,
-    paddingHorizontal: 40,
-    borderRadius: 8,
-    width: '80%',
-    alignItems: 'center',
-  },
-  buttonText: {
-    color: 'white',
-    fontSize: 18,
-    fontWeight: '600',
-    fontFamily: 'IBM-Plex-Mono-Bold',
-  },
-  footer: {
-    alignItems: 'center',
-    padding: 15,
-  },
-  footerText: {
-    color: '#7EA6D9', // новый цвет ссылок
-    fontSize: 16,
-    fontFamily: 'IBM-Plex-Mono',
-  },
-});
+export default function App() {
+  return (
+    <SafeAreaProvider>
+      <ThemeProvider>
+        <FontLoader>
+          <NavigationContainer>
+            <ThemedNavigator />
+          </NavigationContainer>
+        </FontLoader>
+      </ThemeProvider>
+    </SafeAreaProvider>
+  );
+}
