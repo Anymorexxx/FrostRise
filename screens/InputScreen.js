@@ -1,4 +1,3 @@
-// InputScreen.js
 import React, { useState, useEffect, useContext } from 'react';
 import {
   View,
@@ -13,6 +12,7 @@ import {
 } from 'react-native';
 import { ThemeContext } from '../context/ThemeContext';
 import colors from '../constants/colors.js';
+import { DatabaseService } from '../database/database';
 
 const InputScreen = ({ navigation }) => {
   const { theme } = useContext(ThemeContext);
@@ -33,43 +33,95 @@ const InputScreen = ({ navigation }) => {
   const [ip, setIp] = useState('');
   const [tcp, setTcp] = useState('');
   const [tf, setTf] = useState('');
+  const [soils, setSoils] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Пример данных для IGE (в реальном проекте — из SQLite)
-  const iges = [
-    { code: '11_1', name: 'Песок гравелистый и крупный', lambdaF: 2.1, cF: 2100, t0: 0.0 },
-    { code: '11_2', name: 'Песок мелкий и пылеватый', lambdaF: 1.8, cF: 1800, t0: 0.2 },
-    { code: '12_1', name: 'Супесь легкая', lambdaF: 1.5, cF: 1700, t0: 0.4 },
-    { code: '12_2', name: 'Супесь тяжелая', lambdaF: 1.4, cF: 1600, t0: 0.5 },
-    { code: '13_1', name: 'Суглинок легкий', lambdaF: 1.3, cF: 1500, t0: 0.6 },
-    { code: '13_2', name: 'Суглинок тяжелый', lambdaF: 1.2, cF: 1400, t0: 0.7 },
-    { code: '14_1', name: 'Глина легкая', lambdaF: 1.1, cF: 1300, t0: 0.8 },
-    { code: '14_2', name: 'Глина тяжелая', lambdaF: 1.0, cF: 1200, t0: 0.9 },
-  ];
+  // Загрузка данных грунтов из БД при монтировании
+  useEffect(() => {
+    const loadData = async () => {
+      await loadSoilsFromDB();
+    };
+    loadData();
+  }, []);
+
+  const loadSoilsFromDB = async () => {
+    try {
+      console.log('Loading soils from DB...');
+      const soilsData = await DatabaseService.getAllSoils();
+      setSoils(soilsData);
+      console.log('Soils loaded successfully:', soilsData.length);
+    } catch (error) {
+      console.error('Error loading soils from DB:', error);
+      // Используем fallback данные
+      setSoils(getFallbackSoils());
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const getFallbackSoils = () => {
+    return [
+      { code: '11_1', name: 'Песок гравелистый и крупный', lambda_f: 2.1, c_f: 2100, t0: 0.0, rho_d: 1500, w: 0.12, wp: 0.08, ip: 0.01 },
+      { code: '11_2', name: 'Песок мелкий и пылеватый', lambda_f: 1.8, c_f: 1800, t0: 0.2, rho_d: 1550, w: 0.13, wp: 0.09, ip: 0.015 },
+      { code: '12_1', name: 'Супесь легкая', lambda_f: 1.5, c_f: 1700, t0: 0.4, rho_d: 1600, w: 0.16, wp: 0.12, ip: 0.04 },
+      { code: '12_2', name: 'Супесь тяжелая', lambda_f: 1.4, c_f: 1600, t0: 0.4, rho_d: 1650, w: 0.17, wp: 0.13, ip: 0.06 },
+      { code: '13_1', name: 'Суглинок легкий', lambda_f: 1.3, c_f: 1500, t0: 0.6, rho_d: 1700, w: 0.19, wp: 0.15, ip: 0.08 },
+      { code: '13_2', name: 'Суглинок средний', lambda_f: 1.2, c_f: 1400, t0: 0.8, rho_d: 1750, w: 0.20, wp: 0.16, ip: 0.10 },
+      { code: '13_3', name: 'Суглинок тяжелый', lambda_f: 1.1, c_f: 1300, t0: 1.0, rho_d: 1800, w: 0.21, wp: 0.17, ip: 0.12 },
+      { code: '14_1', name: 'Глина легкая', lambda_f: 1.0, c_f: 1200, t0: 1.1, rho_d: 1850, w: 0.22, wp: 0.18, ip: 0.14 },
+      { code: '14_2', name: 'Глина средняя', lambda_f: 0.9, c_f: 1100, t0: 1.3, rho_d: 1900, w: 0.23, wp: 0.19, ip: 0.16 },
+      { code: '14_3', name: 'Глина тяжелая', lambda_f: 0.8, c_f: 1000, t0: 1.5, rho_d: 1950, w: 0.24, wp: 0.20, ip: 0.18 },
+    ];
+  };
 
   const showIGESelection = () => {
-    const options = ['Отмена', ...iges.map(ige => `${ige.code} - ${ige.name}`)];
-    
-    ActionSheetIOS.showActionSheetWithOptions(
-      {
-        options: options,
-        cancelButtonIndex: 0,
-        title: 'Выберите ИГЭ',
-        message: 'Выберите тип грунта из списка',
-      },
-      (buttonIndex) => {
-        if (buttonIndex === 0) {
-          // Отмена
-          return;
+    if (!soils || soils.length === 0) {
+      Alert.alert('Ошибка', 'Данные грунтов не загружены');
+      return;
+    }
+
+    try {
+      const options = ['Отмена', ...soils.map(soil => `${soil.code} - ${soil.name}`)];
+      
+      ActionSheetIOS.showActionSheetWithOptions(
+        {
+          options: options,
+          cancelButtonIndex: 0,
+          title: 'Выберите ИГЭ',
+          message: 'Выберите тип грунта из списка',
+        },
+        (buttonIndex) => {
+          if (buttonIndex === 0) {
+            return;
+          }
+          const selectedIndex = buttonIndex - 1;
+          const selected = soils[selectedIndex];
+          if (selected) {
+            handleSoilSelection(selected);
+          }
         }
-        const selectedIndex = buttonIndex - 1;
-        const selected = iges[selectedIndex];
-        setSelectedIGE(selected.code);
-        setSelectedIGEName(`${selected.code} - ${selected.name}`);
-        setLambdaF(selected.lambdaF.toString());
-        setCf(selected.cF.toString());
-        setT0(selected.t0.toString());
-      }
-    );
+      );
+    } catch (error) {
+      console.error('Error showing soil selection:', error);
+      Alert.alert('Ошибка', 'Не удалось открыть выбор грунта');
+    }
+  };
+
+  const handleSoilSelection = (selected) => {
+    if (!selected) return;
+    
+    setSelectedIGE(selected.code);
+    setSelectedIGEName(`${selected.code} - ${selected.name}`);
+    setLambdaF(selected.lambda_f?.toString() || '');
+    setCf(selected.c_f?.toString() || '');
+    setT0(selected.t0?.toString() || '');
+    setSubsoilName(selected.name);
+    
+    // Устанавливаем значения по умолчанию для грунта из данных БД
+    setPd(selected.rho_d?.toString() || '1800');
+    setW(selected.w?.toString() || '0.21');
+    setWp(selected.wp?.toString() || '0.18');
+    setIp(selected.ip?.toString() || '0.16');
   };
 
   useEffect(() => {
@@ -82,20 +134,12 @@ const InputScreen = ({ navigation }) => {
   }, [selectedIGE]);
 
   const isFormValid = () => {
-    return (
-      selectedIGE &&
-      thickness &&
-      density &&
-      moisture &&
-      subsoilName &&
-      t0 &&
-      pd &&
-      w &&
-      wp &&
-      ip &&
-      tcp &&
-      tf
-    );
+    const requiredFields = [
+      selectedIGE, thickness, density, moisture, subsoilName, 
+      t0, pd, w, wp, ip, tcp, tf
+    ];
+    
+    return requiredFields.every(field => field && field.toString().trim() !== '');
   };
 
   const handleCalculate = () => {
@@ -104,12 +148,44 @@ const InputScreen = ({ navigation }) => {
       return;
     }
 
+    // Валидация числовых значений
+    const numericFields = [
+      { value: thickness, name: 'Толщина' },
+      { value: density, name: 'Плотность' },
+      { value: moisture, name: 'Влажность' },
+      { value: t0, name: 't0' },
+      { value: pd, name: 'pd' },
+      { value: w, name: 'W' },
+      { value: wp, name: 'Wp' },
+      { value: ip, name: 'Jp' },
+      { value: tcp, name: 'Tcp' },
+      { value: tf, name: 'Tf' }
+    ];
+
+    for (let field of numericFields) {
+      const value = parseFloat(field.value);
+      if (isNaN(value)) {
+        Alert.alert('Ошибка', `Поле "${field.name}" должно быть числом`);
+        return;
+      }
+      if (value < 0) {
+        Alert.alert('Ошибка', `Поле "${field.name}" должно быть положительным числом`);
+        return;
+      }
+    }
+
+    // Проверка специфических диапазонов
+    if (parseFloat(moisture) > 1 || parseFloat(w) > 1 || parseFloat(wp) > 1) {
+      Alert.alert('Ошибка', 'Влажность должна быть в диапазоне 0-1');
+      return;
+    }
+
     // Передача данных на экран результатов
     navigation.navigate('Result', {
       inputData: {
         selectedIGE,
-        lambdaF,
-        cF,
+        lambdaF: lambdaF || '1.9',
+        cF: cF || '1675', 
         thickness,
         density,
         moisture,
@@ -124,6 +200,36 @@ const InputScreen = ({ navigation }) => {
       },
     });
   };
+
+  const clearForm = () => {
+    setSelectedIGE('');
+    setSelectedIGEName('');
+    setLambdaF('');
+    setCf('');
+    setThickness('');
+    setDensity('');
+    setMoisture('');
+    setSubsoilName('');
+    setT0('');
+    setPd('');
+    setW('');
+    setWp('');
+    setIp('');
+    setTcp('');
+    setTf('');
+  };
+
+  if (loading) {
+    return (
+      <View style={[styles.container, { backgroundColor: currentColors.background }]}>
+        <View style={styles.loadingContainer}>
+          <Text style={[styles.loadingText, { color: currentColors.text }]}>
+            Загрузка данных грунтов...
+          </Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <ScrollView 
@@ -167,12 +273,33 @@ const InputScreen = ({ navigation }) => {
               <Text style={[styles.constantUnit, { color: currentColors.constantText }]}>кДж/(м³·°C)</Text>
             </View>
           </View>
-        </>
-      ) : null}
 
-      {/* Редактируемые поля - горизонтальное расположение */}
+          {/* t0 с единицами измерения */}
+          <View style={styles.constantRow}>
+            <Text style={[styles.constantLabel, { color: currentColors.constantText }]}>t0:</Text>
+            <View style={styles.constantValueContainer}>
+              <Text style={[styles.constantValue, { color: currentColors.constantText }]}>{t0}</Text>
+              <Text style={[styles.constantUnit, { color: currentColors.constantText }]}>°C</Text>
+            </View>
+          </View>
+        </>
+      ) : (
+        <View style={styles.noSelectionContainer}>
+          <Text style={[styles.noSelectionText, { color: currentColors.constantText }]}>
+            Выберите тип грунта для отображения констант
+          </Text>
+        </View>
+      )}
+
+      {/* Секция: Параметры покрытия */}
+      <View style={styles.sectionHeader}>
+        <Text style={[styles.sectionTitle, { color: currentColors.sectionTitle }]}>
+          Параметры покрытия
+        </Text>
+      </View>
+
       <View style={styles.inputRow}>
-        <Text style={[styles.inputLabel, { color: currentColors.inputText }]}>Толщина (м)</Text>
+        <Text style={[styles.inputLabel, { color: currentColors.inputText }]}>Толщина покрытия (м)</Text>
         <TextInput
           style={[styles.inputField, { 
             backgroundColor: currentColors.inputBackground,
@@ -182,13 +309,13 @@ const InputScreen = ({ navigation }) => {
           value={thickness}
           onChangeText={setThickness}
           keyboardType="decimal-pad"
-          placeholder="Введите толщину"
+          placeholder="0.20"
           placeholderTextColor={currentColors.inputText}
         />
       </View>
 
       <View style={styles.inputRow}>
-        <Text style={[styles.inputLabel, { color: currentColors.inputText }]}>Плотность (кг/м³)</Text>
+        <Text style={[styles.inputLabel, { color: currentColors.inputText }]}>Плотность покрытия (кг/м³)</Text>
         <TextInput
           style={[styles.inputField, { 
             backgroundColor: currentColors.inputBackground,
@@ -198,13 +325,13 @@ const InputScreen = ({ navigation }) => {
           value={density}
           onChangeText={setDensity}
           keyboardType="decimal-pad"
-          placeholder="Введите плотность"
+          placeholder="2300"
           placeholderTextColor={currentColors.inputText}
         />
       </View>
 
       <View style={styles.inputRow}>
-        <Text style={[styles.inputLabel, { color: currentColors.inputText }]}>Влажность W (д.е.)</Text>
+        <Text style={[styles.inputLabel, { color: currentColors.inputText }]}>Влажность покрытия W (д.е.)</Text>
         <TextInput
           style={[styles.inputField, { 
             backgroundColor: currentColors.inputBackground,
@@ -214,9 +341,16 @@ const InputScreen = ({ navigation }) => {
           value={moisture}
           onChangeText={setMoisture}
           keyboardType="decimal-pad"
-          placeholder="Введите влажность"
+          placeholder="0.03"
           placeholderTextColor={currentColors.inputText}
         />
+      </View>
+
+      {/* Секция: Параметры грунта */}
+      <View style={styles.sectionHeader}>
+        <Text style={[styles.sectionTitle, { color: currentColors.sectionTitle }]}>
+          Параметры грунта
+        </Text>
       </View>
 
       <View style={styles.inputRow}>
@@ -229,29 +363,13 @@ const InputScreen = ({ navigation }) => {
           }]}
           value={subsoilName}
           onChangeText={setSubsoilName}
-          placeholder="Введите название грунта"
+          placeholder="Глина полутвердая"
           placeholderTextColor={currentColors.inputText}
         />
       </View>
 
       <View style={styles.inputRow}>
-        <Text style={[styles.inputLabel, { color: currentColors.inputText }]}>t0 (°C)</Text>
-        <TextInput
-          style={[styles.inputField, { 
-            backgroundColor: currentColors.inputBackground,
-            borderColor: currentColors.inputBorder,
-            color: currentColors.text 
-          }]}
-          value={t0}
-          onChangeText={setT0}
-          keyboardType="decimal-pad"
-          placeholder="Введите температуру"
-          placeholderTextColor={currentColors.inputText}
-        />
-      </View>
-
-      <View style={styles.inputRow}>
-        <Text style={[styles.inputLabel, { color: currentColors.inputText }]}>pd (кг/м³)</Text>
+        <Text style={[styles.inputLabel, { color: currentColors.inputText }]}>Плотность сухого грунта pd (кг/м³)</Text>
         <TextInput
           style={[styles.inputField, { 
             backgroundColor: currentColors.inputBackground,
@@ -261,13 +379,13 @@ const InputScreen = ({ navigation }) => {
           value={pd}
           onChangeText={setPd}
           keyboardType="decimal-pad"
-          placeholder="Введите плотность сухого грунта"
+          placeholder="1800"
           placeholderTextColor={currentColors.inputText}
         />
       </View>
 
       <View style={styles.inputRow}>
-        <Text style={[styles.inputLabel, { color: currentColors.inputText }]}>W (д.е.)</Text>
+        <Text style={[styles.inputLabel, { color: currentColors.inputText }]}>Влажность грунта W (д.е.)</Text>
         <TextInput
           style={[styles.inputField, { 
             backgroundColor: currentColors.inputBackground,
@@ -277,13 +395,13 @@ const InputScreen = ({ navigation }) => {
           value={w}
           onChangeText={setW}
           keyboardType="decimal-pad"
-          placeholder="Введите влажность"
+          placeholder="0.21"
           placeholderTextColor={currentColors.inputText}
         />
       </View>
 
       <View style={styles.inputRow}>
-        <Text style={[styles.inputLabel, { color: currentColors.inputText }]}>Wp</Text>
+        <Text style={[styles.inputLabel, { color: currentColors.inputText }]}>Влажность на границе раскатывания Wp</Text>
         <TextInput
           style={[styles.inputField, { 
             backgroundColor: currentColors.inputBackground,
@@ -293,13 +411,13 @@ const InputScreen = ({ navigation }) => {
           value={wp}
           onChangeText={setWp}
           keyboardType="decimal-pad"
-          placeholder="Введите Wp"
+          placeholder="0.18"
           placeholderTextColor={currentColors.inputText}
         />
       </View>
 
       <View style={styles.inputRow}>
-        <Text style={[styles.inputLabel, { color: currentColors.inputText }]}>Jp</Text>
+        <Text style={[styles.inputLabel, { color: currentColors.inputText }]}>Число пластичности Jp</Text>
         <TextInput
           style={[styles.inputField, { 
             backgroundColor: currentColors.inputBackground,
@@ -309,13 +427,20 @@ const InputScreen = ({ navigation }) => {
           value={ip}
           onChangeText={setIp}
           keyboardType="decimal-pad"
-          placeholder="Введите Jp"
+          placeholder="0.16"
           placeholderTextColor={currentColors.inputText}
         />
       </View>
 
+      {/* Секция: Климатические параметры */}
+      <View style={styles.sectionHeader}>
+        <Text style={[styles.sectionTitle, { color: currentColors.sectionTitle }]}>
+          Климатические параметры
+        </Text>
+      </View>
+
       <View style={styles.inputRow}>
-        <Text style={[styles.inputLabel, { color: currentColors.inputText }]}>Tcp (°C)</Text>
+        <Text style={[styles.inputLabel, { color: currentColors.inputText }]}>Средняя температура Tcp (°C)</Text>
         <TextInput
           style={[styles.inputField, { 
             backgroundColor: currentColors.inputBackground,
@@ -325,13 +450,13 @@ const InputScreen = ({ navigation }) => {
           value={tcp}
           onChangeText={setTcp}
           keyboardType="decimal-pad"
-          placeholder="Введите среднюю температуру"
+          placeholder="12.51"
           placeholderTextColor={currentColors.inputText}
         />
       </View>
 
       <View style={styles.inputRow}>
-        <Text style={[styles.inputLabel, { color: currentColors.inputText }]}>Tf</Text>
+        <Text style={[styles.inputLabel, { color: currentColors.inputText }]}>Продолжительность промерзания Tf (час)</Text>
         <TextInput
           style={[styles.inputField, { 
             backgroundColor: currentColors.inputBackground,
@@ -341,24 +466,36 @@ const InputScreen = ({ navigation }) => {
           value={tf}
           onChangeText={setTf}
           keyboardType="decimal-pad"
-          placeholder="Введите Tf"
+          placeholder="3624"
           placeholderTextColor={currentColors.inputText}
         />
       </View>
 
-      {/* Кнопка "Рассчитать" */}
-      <TouchableOpacity
-        style={[
-          styles.calculateButton,
-          { 
-            backgroundColor: isFormValid() ? currentColors.primaryButton : currentColors.secondaryButton 
-          },
-        ]}
-        onPress={handleCalculate}
-        disabled={!isFormValid()}
-      >
-        <Text style={[styles.buttonText, { color: currentColors.text }]}>Рассчитать</Text>
-      </TouchableOpacity>
+      {/* Кнопки действий */}
+      <View style={styles.buttonContainer}>
+        <TouchableOpacity
+          style={[
+            styles.calculateButton,
+            { 
+              backgroundColor: isFormValid() ? currentColors.primaryButton : currentColors.secondaryButton 
+            },
+          ]}
+          onPress={handleCalculate}
+          disabled={!isFormValid()}
+        >
+          <Text style={[styles.buttonText, { color: currentColors.text }]}>Рассчитать Hₙ</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.clearButton, { 
+            backgroundColor: currentColors.inputBackground,
+            borderColor: currentColors.inputBorder
+          }]}
+          onPress={clearForm}
+        >
+          <Text style={[styles.clearButtonText, { color: currentColors.text }]}>Очистить форму</Text>
+        </TouchableOpacity>
+      </View>
 
       {/* Ссылка на историю */}
       <TouchableOpacity onPress={() => navigation.navigate('History')}>
@@ -375,6 +512,25 @@ const styles = StyleSheet.create({
   contentContainer: {
     padding: 20,
     paddingBottom: 40,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 16,
+    fontFamily: 'IBM-Plex-Mono-Regular',
+  },
+  noSelectionContainer: {
+    alignItems: 'center',
+    paddingVertical: 20,
+    marginBottom: 10,
+  },
+  noSelectionText: {
+    fontSize: 14,
+    fontFamily: 'IBM-Plex-Mono-Regular',
+    fontStyle: 'italic',
   },
   igeSelectionContainer: {
     marginBottom: 25,
@@ -406,6 +562,18 @@ const styles = StyleSheet.create({
   igeSelectionArrow: {
     fontSize: 12,
     marginLeft: 8,
+  },
+  sectionHeader: {
+    marginTop: 20,
+    marginBottom: 15,
+    paddingBottom: 5,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.1)',
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    fontFamily: 'IBM-Plex-Mono-Bold',
   },
   constantRow: {
     flexDirection: 'row',
@@ -444,7 +612,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   inputLabel: {
-    fontSize: 16,
+    fontSize: 14,
     fontFamily: 'IBM-Plex-Mono-Regular',
     fontWeight: '500',
     flex: 1,
@@ -455,7 +623,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 12,
     fontFamily: 'IBM-Plex-Mono-Regular',
-    fontSize: 16,
+    fontSize: 14,
     flex: 2,
     ...Platform.select({
       ios: {
@@ -466,11 +634,14 @@ const styles = StyleSheet.create({
       },
     }),
   },
+  buttonContainer: {
+    marginTop: 25,
+  },
   calculateButton: {
-    marginTop: 20,
     paddingVertical: 16,
     borderRadius: 8,
     alignItems: 'center',
+    marginBottom: 10,
     ...Platform.select({
       ios: {
         shadowColor: '#000',
@@ -480,10 +651,20 @@ const styles = StyleSheet.create({
       },
     }),
   },
+  clearButton: {
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    borderWidth: 1,
+  },
   buttonText: {
     fontSize: 18,
     fontWeight: 'bold',
     fontFamily: 'IBM-Plex-Mono-Bold',
+  },
+  clearButtonText: {
+    fontSize: 16,
+    fontFamily: 'IBM-Plex-Mono-Regular',
   },
   historyLink: {
     marginTop: 20,

@@ -3,10 +3,11 @@ import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import * as Font from 'expo-font';
-import { View, ActivityIndicator } from 'react-native';
+import { View, ActivityIndicator, Text } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import colors from './constants/colors';
+import { initDatabase } from './database/database';
 
 // Экраны
 import HomeScreen from './screens/HomeScreen';
@@ -21,7 +22,7 @@ const Stack = createStackNavigator();
 // Создаём отдельный компонент для навигатора с темой
 function ThemedNavigator() {
   const { theme } = useTheme();
-  const currentColors = colors[theme] || colors.light; // fallback на light тему
+  const currentColors = colors[theme] || colors.light;
 
   return (
     <Stack.Navigator
@@ -48,31 +49,65 @@ function ThemedNavigator() {
   );
 }
 
-// Компонент загрузки шрифтов
-function FontLoader({ children }) {
+// Компонент загрузки шрифтов и инициализации БД
+function AppLoader({ children }) {
   const [fontsLoaded, setFontsLoaded] = useState(false);
+  const [dbInitialized, setDbInitialized] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState('Загрузка шрифтов...');
 
   useEffect(() => {
-    async function loadFonts() {
-      try {
-        await Font.loadAsync({
-          'IBM-Plex-Mono': require('./assets/fonts/IBMPlexMono-Regular.ttf'),
-          'IBM-Plex-Mono-Bold': require('./assets/fonts/IBMPlexMono-Bold.ttf'),
-        });
-        setFontsLoaded(true);
-      } catch (e) {
-        console.warn('Error loading fonts:', e);
-        setFontsLoaded(true); // Продолжаем даже если шрифты не загрузились
-      }
+  async function initializeApp() {
+    try {
+      // Шаг 1: Загрузка шрифтов
+      setLoadingProgress('Загрузка шрифтов...');
+      await Font.loadAsync({
+        'IBM-Plex-Mono': require('./assets/fonts/IBMPlexMono-Regular.ttf'),
+        'IBM-Plex-Mono-Bold': require('./assets/fonts/IBMPlexMono-Bold.ttf'),
+      });
+      setFontsLoaded(true);
+
+      // Шаг 2: Инициализация БД
+      setLoadingProgress('Инициализация базы данных...');
+      await initDatabase();
+      setDbInitialized(true);
+      
+    } catch (error) {
+      console.warn('Error during app initialization:', error);
+      setFontsLoaded(true);
+      setDbInitialized(true);
     }
+  }
 
-    loadFonts();
-  }, []);
+  initializeApp();
+}, []);
 
-  if (!fontsLoaded) {
+  if (!fontsLoaded || !dbInitialized) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#000000" />
+      <View style={{ 
+        flex: 1, 
+        justifyContent: 'center', 
+        alignItems: 'center',
+        backgroundColor: colors.light.background 
+      }}>
+        <ActivityIndicator size="large" color="#7234ED" />
+        <Text style={{ 
+          marginTop: 20, 
+          fontSize: 16,
+          color: colors.light.text,
+          fontFamily: 'System',
+          textAlign: 'center'
+        }}>
+          {loadingProgress}
+        </Text>
+        <Text style={{ 
+          marginTop: 10, 
+          fontSize: 12,
+          color: colors.light.constantText,
+          fontFamily: 'System',
+          textAlign: 'center'
+        }}>
+          FrostRise
+        </Text>
       </View>
     );
   }
@@ -84,11 +119,11 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <ThemeProvider>
-        <FontLoader>
+        <AppLoader>
           <NavigationContainer>
             <ThemedNavigator />
           </NavigationContainer>
-        </FontLoader>
+        </AppLoader>
       </ThemeProvider>
     </SafeAreaProvider>
   );

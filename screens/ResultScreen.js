@@ -1,4 +1,5 @@
-import React, { useEffect, useContext } from 'react';
+// ResultScreen.js
+import React, { useEffect, useContext, useState } from 'react';
 import {
   View,
   Text,
@@ -14,63 +15,67 @@ import { HistoryStorage } from '../utils/historyStorage';
 import { generatePDF } from '../utils/pdfGenerator';
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
+import { CalculationService } from '../services/calculationService';
 
 const ResultScreen = ({ route, navigation }) => {
   const { theme } = useContext(ThemeContext);
   const currentColors = colors[theme] || colors.light;
   
   const { inputData } = route.params;
+  const [calculationResult, setCalculationResult] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // Пример расчета (в реальном проекте — логика из ТЗ)
-  const dfSP = parseFloat(inputData.thickness) + 0.5; // Условный расчет по СП
-  const dfTSN = dfSP * 0.8; // Условный расчет по ТСН
-
-  // Сохраняем расчёт в историю при загрузке экрана
+  // Выполняем расчет при загрузке экрана
   useEffect(() => {
-    const saveToHistory = async () => {
-      try {
-        await HistoryStorage.saveCalculation({
-          igE: inputData.selectedIGE,
-          df: dfSP.toFixed(2),
-          thickness: inputData.thickness,
-          density: inputData.density,
-          moisture: inputData.moisture,
-          subsoilName: inputData.subsoilName,
-          t0: inputData.t0,
-          pd: inputData.pd,
-          w: inputData.w,
-          wp: inputData.wp,
-          ip: inputData.ip,
-          tcp: inputData.tcp,
-          tf: inputData.tf,
-        });
-      } catch (error) {
-        console.error('Error saving to history:', error);
-      }
-    };
-
-    saveToHistory();
+    performCalculation();
   }, []);
 
-  // Оценка риска
-  let riskLevel = '';
-  let riskColor = '';
-  if (dfSP < 0.5) {
-    riskLevel = 'Низкий риск';
-    riskColor = currentColors.risk.low;
-  } else if (dfSP < 1.0) {
-    riskLevel = 'Средний риск';
-    riskColor = currentColors.risk.medium;
-  } else {
-    riskLevel = 'Высокий риск';
-    riskColor = currentColors.risk.high;
+  const performCalculation = async () => {
+    try {
+      setLoading(true);
+      const result = await CalculationService.calculateFreezingDepth(inputData);
+      setCalculationResult(result);
+      
+      // Сохраняем в историю
+      await HistoryStorage.saveCalculation({
+        igE: inputData.selectedIGE,
+        df: result.Hn,
+        thickness: inputData.thickness,
+        density: inputData.density,
+        moisture: inputData.moisture,
+        subsoilName: inputData.subsoilName,
+        riskLevel: result.riskLevel,
+      });
+      
+    } catch (error) {
+      console.error('Calculation error:', error);
+      Alert.alert('Ошибка', 'Не удалось выполнить расчет');
+      // Возвращаемся на предыдущий экран при ошибке
+      navigation.goBack();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading || !calculationResult) {
+    return (
+      <View style={[styles.container, { backgroundColor: currentColors.background }]}>
+        <View style={styles.loadingContainer}>
+          <Text style={[styles.loadingText, { color: currentColors.text }]}>
+            Выполняется расчет...
+          </Text>
+        </View>
+      </View>
+    );
   }
+
+  const { Hn, Hn_TSN, riskLevel, riskColor } = calculationResult;
 
   const data = {
     labels: ['СП 121.13330', 'ТСН МФ-97 МО'],
     datasets: [
       {
-        data: [dfSP, dfTSN],
+        data: [parseFloat(Hn), parseFloat(Hn_TSN)],
         colors: [(opacity = 1) => currentColors.chart.sp, (opacity = 1) => currentColors.chart.tsn],
       },
     ],
@@ -94,7 +99,6 @@ const ResultScreen = ({ route, navigation }) => {
 
   const handleExport = async () => {
     try {
-      // Создаем данные для PDF
       const pdfData = {
         date: new Date().toLocaleDateString('ru-RU'),
         inputData: {
@@ -114,17 +118,14 @@ const ResultScreen = ({ route, navigation }) => {
           tf: inputData.tf || 'Не указано',
         },
         result: {
-          df: dfSP.toFixed(2),
+          Hn: Hn,
+          Hn_TSN: Hn_TSN,
           riskLevel: riskLevel,
-          dfSP: dfSP.toFixed(2),
-          dfTSN: dfTSN.toFixed(2),
         },
+        calculationDetails: calculationResult.calculationDetails
       };
 
-      // Генерируем PDF
       const pdfPath = await generatePDF(pdfData);
-
-      // Открываем диалог分享
       await Sharing.shareAsync(pdfPath, {
         mimeType: 'application/pdf',
         dialogTitle: 'Сохранить отчёт FrostRise',
@@ -151,21 +152,27 @@ const ResultScreen = ({ route, navigation }) => {
       contentContainerStyle={styles.contentContainer}
       showsVerticalScrollIndicator={false}
     >
-      {/* Результат df */}
+      {/* Результат Hn */}
       <View style={[styles.resultBox, { 
         backgroundColor: currentColors.inputBackground,
         borderColor: currentColors.inputBorder 
       }]}>
-        <Text style={[styles.resultText, { color: currentColors.text }]}>df = {dfSP.toFixed(2)} м</Text>
-        <Text style={[styles.resultSubtext, { color: currentColors.text }]}>по методике СП 121.13330.2012</Text>
+        <Text style={[styles.resultText, { color: currentColors.text }]}>
+          Hn = {Hn} м
+        </Text>
+        <Text style={[styles.resultSubtext, { color: currentColors.text }]}>
+          по методике СП 121.13330.2012
+        </Text>
       </View>
 
       {/* Блок оценки риска */}
       <View style={[styles.riskBox, { backgroundColor: riskColor }]}>
-        <Text style={[styles.riskText, { color: currentColors.text }]}>{riskLevel}</Text>
+        <Text style={[styles.riskText, { color: currentColors.text }]}>
+          {riskLevel}
+        </Text>
       </View>
 
-      {/* График */}
+      {/* График сравнения */}
       <View style={styles.chartContainer}>
         <BarChart
           data={data}
@@ -180,13 +187,32 @@ const ResultScreen = ({ route, navigation }) => {
         <View style={styles.legend}>
           <View style={styles.legendItem}>
             <View style={[styles.legendColor, { backgroundColor: currentColors.chart.sp }]} />
-            <Text style={[styles.legendText, { color: currentColors.text }]}>СП 121.13330</Text>
+            <Text style={[styles.legendText, { color: currentColors.text }]}>
+              СП 121.13330
+            </Text>
           </View>
           <View style={styles.legendItem}>
             <View style={[styles.legendColor, { backgroundColor: currentColors.chart.tsn }]} />
-            <Text style={[styles.legendText, { color: currentColors.text }]}>ТСН МФ-97 МО</Text>
+            <Text style={[styles.legendText, { color: currentColors.text }]}>
+              ТСН МФ-97 МО
+            </Text>
           </View>
         </View>
+      </View>
+
+      {/* Детали расчета */}
+      <View style={[styles.detailsBox, { 
+        backgroundColor: currentColors.inputBackground,
+        borderColor: currentColors.inputBorder 
+      }]}>
+        <Text style={[styles.detailsTitle, { color: currentColors.text }]}>
+          Детали расчета:
+        </Text>
+        <Text style={[styles.detailsText, { color: currentColors.text }]}>
+          • Методика: СП 121.13330.2012 формула E.1{'\n'}
+          • Сравнение с ТСН МФ-97 МО{'\n'}
+          • Учет фазовых переходов тепла
+        </Text>
       </View>
 
       {/* Кнопки */}
@@ -194,19 +220,25 @@ const ResultScreen = ({ route, navigation }) => {
         style={[styles.exportButton, { backgroundColor: currentColors.exportButton }]}
         onPress={handleExport}
       >
-        <Text style={[styles.buttonText, { color: currentColors.text }]}>Экспорт в PDF</Text>
+        <Text style={[styles.buttonText, { color: currentColors.text }]}>
+          Экспорт в PDF
+        </Text>
       </TouchableOpacity>
 
       <TouchableOpacity
         style={[styles.newCalcButton, { backgroundColor: currentColors.primaryButton }]}
         onPress={handleNewCalculation}
       >
-        <Text style={[styles.buttonText, { color: currentColors.text }]}>Новый расчёт</Text>
+        <Text style={[styles.buttonText, { color: currentColors.text }]}>
+          Новый расчёт
+        </Text>
       </TouchableOpacity>
 
       {/* Ссылка на историю */}
       <TouchableOpacity onPress={handleHistory}>
-        <Text style={[styles.historyLink, { color: currentColors.historyLink }]}>История расчётов</Text>
+        <Text style={[styles.historyLink, { color: currentColors.historyLink }]}>
+          История расчётов
+        </Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -219,6 +251,15 @@ const styles = StyleSheet.create({
   contentContainer: {
     padding: 20,
     paddingBottom: 40,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    fontSize: 18,
+    fontFamily: 'IBM-Plex-Mono-Regular',
   },
   resultBox: {
     padding: 15,
@@ -272,6 +313,23 @@ const styles = StyleSheet.create({
   },
   legendText: {
     fontSize: 12,
+    fontFamily: 'IBM-Plex-Mono-Regular',
+  },
+  detailsBox: {
+    padding: 15,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginBottom: 20,
+  },
+  detailsTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 10,
+    fontFamily: 'IBM-Plex-Mono-Bold',
+  },
+  detailsText: {
+    fontSize: 14,
+    lineHeight: 20,
     fontFamily: 'IBM-Plex-Mono-Regular',
   },
   exportButton: {
