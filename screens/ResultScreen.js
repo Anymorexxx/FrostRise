@@ -36,21 +36,20 @@ const ResultScreen = ({ route, navigation }) => {
       const result = await CalculationService.calculateFreezingDepth(inputData);
       setCalculationResult(result);
       
-      // Сохраняем в историю
+      // Сохраняем в историю с новой структурой
       await HistoryStorage.saveCalculation({
         igE: inputData.selectedIGE,
+        soilName: inputData.soilData.subsoilName,
         df: result.Hn,
-        thickness: inputData.thickness,
-        density: inputData.density,
-        moisture: inputData.moisture,
-        subsoilName: inputData.subsoilName,
+        layers: inputData.layers,
+        climateData: inputData.climateData,
         riskLevel: result.riskLevel,
+        timestamp: new Date().toISOString(),
       });
       
     } catch (error) {
       console.error('Calculation error:', error);
       Alert.alert('Ошибка', 'Не удалось выполнить расчет');
-      // Возвращаемся на предыдущий экран при ошибке
       navigation.goBack();
     } finally {
       setLoading(false);
@@ -69,7 +68,7 @@ const ResultScreen = ({ route, navigation }) => {
     );
   }
 
-  const { Hn, Hn_TSN, riskLevel, riskColor } = calculationResult;
+  const { Hn, Hn_TSN, riskLevel, riskColor, calculationDetails } = calculationResult;
 
   const data = {
     labels: ['СП 121.13330', 'ТСН МФ-97 МО'],
@@ -102,27 +101,18 @@ const ResultScreen = ({ route, navigation }) => {
       const pdfData = {
         date: new Date().toLocaleDateString('ru-RU'),
         inputData: {
-          selectedIGE: inputData.selectedIGE || 'Не указан',
-          lambdaF: inputData.lambdaF || 'Не указано',
-          cF: inputData.cF || 'Не указано',
-          thickness: inputData.thickness || 'Не указано',
-          density: inputData.density || 'Не указано',
-          moisture: inputData.moisture || 'Не указано',
-          subsoilName: inputData.subsoilName || 'Не указано',
-          t0: inputData.t0 || 'Не указано',
-          pd: inputData.pd || 'Не указано',
-          w: inputData.w || 'Не указано',
-          wp: inputData.wp || 'Не указано',
-          ip: inputData.ip || 'Не указано',
-          tcp: inputData.tcp || 'Не указано',
-          tf: inputData.tf || 'Не указано',
+          selectedIGE: inputData.selectedIGE,
+          soilData: inputData.soilData,
+          layers: inputData.layers,
+          climateData: inputData.climateData,
+          insulationEnabled: inputData.insulationEnabled
         },
         result: {
           Hn: Hn,
           Hn_TSN: Hn_TSN,
           riskLevel: riskLevel,
-        },
-        calculationDetails: calculationResult.calculationDetails
+          calculationDetails: calculationDetails
+        }
       };
 
       const pdfPath = await generatePDF(pdfData);
@@ -145,6 +135,26 @@ const ResultScreen = ({ route, navigation }) => {
   const handleHistory = () => {
     navigation.navigate('History');
   };
+
+  // Функция для форматирования информации о слоях
+  const renderLayersInfo = () => {
+  return inputData.layers.map((layer, index) => (
+    <Text key={layer.id} style={[styles.detailsText, { color: currentColors.text }]}>
+      • {layer.name}: {layer.thickness} м, {layer.density} кг/м³, влаж. {layer.moisture}
+    </Text>
+    ));
+  };
+
+  // В JSX обновляем текст
+  <View style={[styles.detailsBox, { 
+    backgroundColor: currentColors.inputBackground,
+    borderColor: currentColors.inputBorder 
+  }]}>
+    <Text style={[styles.detailsTitle, { color: currentColors.text }]}>
+      Расчетные слои ({inputData.layers.length} из 5):
+    </Text>
+    {renderLayersInfo()}
+  </View>
 
   return (
     <ScrollView 
@@ -200,6 +210,17 @@ const ResultScreen = ({ route, navigation }) => {
         </View>
       </View>
 
+      {/* Информация о расчетных слоях */}
+      <View style={[styles.detailsBox, { 
+        backgroundColor: currentColors.inputBackground,
+        borderColor: currentColors.inputBorder 
+      }]}>
+        <Text style={[styles.detailsTitle, { color: currentColors.text }]}>
+          Расчетные слои ({inputData.layers.length}):
+        </Text>
+        {renderLayersInfo()}
+      </View>
+
       {/* Детали расчета */}
       <View style={[styles.detailsBox, { 
         backgroundColor: currentColors.inputBackground,
@@ -210,10 +231,30 @@ const ResultScreen = ({ route, navigation }) => {
         </Text>
         <Text style={[styles.detailsText, { color: currentColors.text }]}>
           • Методика: СП 121.13330.2012 формула E.1{'\n'}
+          • Грунт: {inputData.soilData.subsoilName}{'\n'}
           • Сравнение с ТСН МФ-97 МО{'\n'}
-          • Учет фазовых переходов тепла
+          • Учет фазовых переходов тепла{'\n'}
+          • Количество слоев: {inputData.layers.length}
         </Text>
       </View>
+
+      {/* Дополнительные параметры */}
+      {calculationDetails && (
+        <View style={[styles.detailsBox, { 
+          backgroundColor: currentColors.inputBackground,
+          borderColor: currentColors.inputBorder 
+        }]}>
+          <Text style={[styles.detailsTitle, { color: currentColors.text }]}>
+            Параметры расчета:
+          </Text>
+          <Text style={[styles.detailsText, { color: currentColors.text }]}>
+            • Tcp: {calculationDetails.constants.theta_mp} °C{'\n'}
+            • Tf: {calculationDetails.constants.tau_f} ч{'\n'}
+            • t0: {calculationDetails.constants.t0} °C{'\n'}
+            • Коэф. kw: {calculationDetails.constants.kw}
+          </Text>
+        </View>
+      )}
 
       {/* Кнопки */}
       <TouchableOpacity
@@ -319,7 +360,7 @@ const styles = StyleSheet.create({
     padding: 15,
     borderRadius: 8,
     borderWidth: 1,
-    marginBottom: 20,
+    marginBottom: 15,
   },
   detailsTitle: {
     fontSize: 16,

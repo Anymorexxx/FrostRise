@@ -8,6 +8,15 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import colors from './constants/colors';
 import { initDatabase } from './database/database';
+import { LogBox } from 'react-native';
+
+LogBox.ignoreLogs(['Remote debugger']);
+
+// Глобальный обработчик ошибок
+ErrorUtils.setGlobalHandler((error, isFatal) => {
+  console.log('🔥 ГЛОБАЛЬНАЯ ОШИБКА:', error, isFatal);
+  console.log('Stack:', error.stack);
+});
 
 // Экраны
 import HomeScreen from './screens/HomeScreen';
