@@ -1,31 +1,22 @@
 // utils/historyStorage.js
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const HISTORY_KEY = '@frostrise_history';
+const HISTORY_KEY = 'calculation_history';
 
 export const HistoryStorage = {
   // Сохранение расчета в историю
-  saveCalculation: async (calculationData) => {
+  async saveCalculation(calculationData) {
     try {
-      const history = await HistoryStorage.getHistory();
-      
+      const existingHistory = await this.getHistory();
       const newCalculation = {
         id: Date.now().toString(),
-        timestamp: calculationData.timestamp || new Date().toISOString(),
-        igE: calculationData.igE,
-        soilName: calculationData.soilName,
-        df: calculationData.df,
-        layers: calculationData.layers || [],
-        climateData: calculationData.climateData,
-        riskLevel: calculationData.riskLevel,
+        ...calculationData,
+        timestamp: new Date().toISOString(),
       };
       
-      history.unshift(newCalculation);
+      const updatedHistory = [newCalculation, ...existingHistory].slice(0, 50); // Ограничиваем историю 50 записями
       
-      // Сохраняем только последние 100 расчетов
-      const limitedHistory = history.slice(0, 100);
-      await AsyncStorage.setItem(HISTORY_KEY, JSON.stringify(limitedHistory));
-      
+      await AsyncStorage.setItem(HISTORY_KEY, JSON.stringify(updatedHistory));
       return newCalculation;
     } catch (error) {
       console.error('Error saving calculation to history:', error);
@@ -34,36 +25,34 @@ export const HistoryStorage = {
   },
 
   // Получение истории расчетов
-  getHistory: async () => {
+  async getHistory() {
     try {
-      const historyJson = await AsyncStorage.getItem(HISTORY_KEY);
-      return historyJson ? JSON.parse(historyJson) : [];
+      const history = await AsyncStorage.getItem(HISTORY_KEY);
+      return history ? JSON.parse(history) : [];
     } catch (error) {
-      console.error('Error getting history:', error);
+      console.error('Error getting calculation history:', error);
       return [];
     }
   },
 
   // Удаление расчета из истории
-  deleteCalculation: async (id) => {
+  async deleteCalculation(id) {
     try {
-      const history = await HistoryStorage.getHistory();
-      const filteredHistory = history.filter(item => item.id !== id);
-      await AsyncStorage.setItem(HISTORY_KEY, JSON.stringify(filteredHistory));
-      return true;
+      const history = await this.getHistory();
+      const updatedHistory = history.filter(item => item.id !== id);
+      await AsyncStorage.setItem(HISTORY_KEY, JSON.stringify(updatedHistory));
     } catch (error) {
-      console.error('Error deleting calculation:', error);
+      console.error('Error deleting calculation from history:', error);
       throw error;
     }
   },
 
   // Очистка всей истории
-  clearHistory: async () => {
+  async clearHistory() {
     try {
-      await AsyncStorage.setItem(HISTORY_KEY, JSON.stringify([]));
-      return true;
+      await AsyncStorage.removeItem(HISTORY_KEY);
     } catch (error) {
-      console.error('Error clearing history:', error);
+      console.error('Error clearing calculation history:', error);
       throw error;
     }
   }

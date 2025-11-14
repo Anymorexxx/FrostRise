@@ -3,243 +3,219 @@ import * as Print from 'expo-print';
 import * as FileSystem from 'expo-file-system';
 import { shareAsync } from 'expo-sharing';
 
-export const generatePDF = async (calculationData) => {
+export const generatePDF = async (calculationData, chartImageBase64 = '') => {
   try {
-    const { inputData, result, date, calculationDetails } = calculationData;
+    const { inputData, result, date, calculationDetails, detailedCalculations } = calculationData;
 
-    // Создаем HTML контент для PDF
     const htmlContent = `
       <!DOCTYPE html>
       <html>
       <head>
         <meta charset="utf-8">
         <style>
+          @page {
+            margin: 2cm;
+            size: A4;
+          }
+
           body {
-            font-family: Arial, sans-serif;
-            margin: 40px;
-            line-height: 1.6;
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 12pt;
+            line-height: 1.5;
+            margin: 0;
+            padding: 0;
           }
-          .header {
+
+          h1 {
+            font-size: 16pt;
+            font-weight: bold;
             text-align: center;
-            margin-bottom: 30px;
-            border-bottom: 2px solid #333;
-            padding-bottom: 20px;
+            margin: 20px 0 10px 0;
           }
+
+          h2 {
+            font-size: 14pt;
+            font-weight: bold;
+            margin: 15px 0 8px 0;
+          }
+
+          .title-page {
+            text-align: center;
+            padding: 80px 0;
+          }
+
           .section {
-            margin-bottom: 25px;
+            margin-bottom: 20px;
           }
-          .section-title {
-            font-size: 18px;
+
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+            border: 1px solid #000;
+          }
+
+          th, td {
+            padding: 8px;
+            border: 1px solid #000;
+            vertical-align: top;
+          }
+
+          th {
+            background-color: #f0f0f0;
             font-weight: bold;
-            margin-bottom: 10px;
-            color: #333;
+            text-align: center;
           }
-          .data-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 8px;
-            padding: 5px 0;
-          }
-          .data-label {
-            font-weight: bold;
-            color: #555;
-          }
+
           .result-box {
-            background-color: #f5f5f5;
+            background-color: #f9f9f9;
+            border: 1px solid #ccc;
             padding: 15px;
-            border-radius: 8px;
             margin: 15px 0;
-            border-left: 4px solid #7234ED;
-          }
-          .risk-${result.riskLevel.includes('Низкий') ? 'low' : result.riskLevel.includes('Средний') ? 'medium' : 'high'} {
-            background-color: ${result.riskLevel.includes('Низкий') ? '#d4edda' : result.riskLevel.includes('Средний') ? '#fff3cd' : '#f8d7da'};
-            padding: 10px;
-            border-radius: 5px;
-            margin: 10px 0;
-            font-weight: bold;
-          }
-          .comparison {
-            display: flex;
-            justify-content: space-around;
-            margin: 20px 0;
-          }
-          .method {
             text-align: center;
-            padding: 10px;
           }
-          .calculation-details {
-            background-color: #f8f9fa;
-            padding: 15px;
-            border-radius: 5px;
-            margin: 10px 0;
-          }
-          .formula {
-            font-family: monospace;
-            background-color: #e9ecef;
-            padding: 10px;
-            border-radius: 3px;
-            margin: 10px 0;
-            font-size: 14px;
-          }
+
+          /* Футер — только на последней странице */
           .footer {
-            margin-top: 30px;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
             text-align: center;
-            font-size: 12px;
-            color: #666;
-            border-top: 1px solid #ddd;
-            padding-top: 20px;
+            font-style: italic;
+            font-size: 10pt;
+            padding: 10px 0;
+            background: white;
+            border-top: 2px solid #000;
           }
-          .sub-section {
-            margin-left: 20px;
-            margin-bottom: 15px;
+
+          .page-break {
+            page-break-after: always;
           }
         </style>
       </head>
       <body>
-        <div class="header">
+
+        <!-- Титульная страница -->
+        <div class="title-page">
           <h1>FrostRise</h1>
           <h2>Отчёт о расчёте глубины промерзания</h2>
           <p>Дата расчета: ${date}</p>
         </div>
 
+        <div class="page-break"></div>
+
+        <!-- Исходные данные -->
         <div class="section">
-          <div class="section-title">Исходные данные</div>
-          
-          <div class="sub-section">
-            <div class="section-title" style="font-size: 16px;">Параметры покрытия</div>
-            <div class="data-row">
-              <span class="data-label">Тип грунта (ИГЭ):</span>
-              <span>${inputData.selectedIGE}</span>
-            </div>
-            <div class="data-row">
-              <span class="data-label">Теплопроводность (λf):</span>
-              <span>${inputData.lambdaF} Вт/(м·°C)</span>
-            </div>
-            <div class="data-row">
-              <span class="data-label">Теплоёмкость (Cf):</span>
-              <span>${inputData.cF} кДж/(м³·°C)</span>
-            </div>
-            <div class="data-row">
-              <span class="data-label">Толщина покрытия:</span>
-              <span>${inputData.thickness} м</span>
-            </div>
-            <div class="data-row">
-              <span class="data-label">Плотность покрытия:</span>
-              <span>${inputData.density} кг/м³</span>
-            </div>
-            <div class="data-row">
-              <span class="data-label">Влажность покрытия:</span>
-              <span>${inputData.moisture} д.е.</span>
-            </div>
-          </div>
+          <h1>Исходные данные</h1>
 
-          <div class="sub-section">
-            <div class="section-title" style="font-size: 16px;">Параметры грунта</div>
-            <div class="data-row">
-              <span class="data-label">Подстилающий грунт:</span>
-              <span>${inputData.subsoilName}</span>
-            </div>
-            <div class="data-row">
-              <span class="data-label">Температура начала пучения (t0):</span>
-              <span>${inputData.t0} °C</span>
-            </div>
-            <div class="data-row">
-              <span class="data-label">Плотность сухого грунта (pd):</span>
-              <span>${inputData.pd} кг/м³</span>
-            </div>
-            <div class="data-row">
-              <span class="data-label">Влажность грунта (W):</span>
-              <span>${inputData.w} д.е.</span>
-            </div>
-            <div class="data-row">
-              <span class="data-label">Влажность на границе раскатывания (Wp):</span>
-              <span>${inputData.wp} д.е.</span>
-            </div>
-            <div class="data-row">
-              <span class="data-label">Число пластичности (Jp):</span>
-              <span>${inputData.ip} д.е.</span>
-            </div>
-          </div>
+          <h2>Параметры покрытия</h2>
+          <table>
+            <tr><th>Параметр</th><th>Значение</th></tr>
+            <tr><td>Тип грунта (ИГЭ)</td><td>${inputData.selectedIGE || 'Не указано'}</td></tr>
+            <tr><td>Теплопроводность (λ<sub>f</sub>)</td><td>${inputData.lambdaF || inputData.soilData?.lambdaF || 'Не указано'} Вт/(м·°C)</td></tr>
+            <tr><td>Теплоёмкость (C<sub>f</sub>)</td><td>${inputData.cF || inputData.soilData?.cF || 'Не указано'} кДж/(м³·°C)</td></tr>
+            <tr><td>Толщина покрытия</td><td>${inputData.layers?.[0]?.thickness || 'Не указано'} м</td></tr>
+            <tr><td>Плотность покрытия</td><td>${inputData.layers?.[0]?.density || 'Не указано'} кг/м³</td></tr>
+            <tr><td>Влажность покрытия</td><td>${inputData.layers?.[0]?.moisture || 'Не указано'} д.е.</td></tr>
+          </table>
 
-          <div class="sub-section">
-            <div class="section-title" style="font-size: 16px;">Климатические параметры</div>
-            <div class="data-row">
-              <span class="data-label">Средняя температура (Tcp):</span>
-              <span>${inputData.tcp} °C</span>
-            </div>
-            <div class="data-row">
-              <span class="data-label">Продолжительность промерзания (Tf):</span>
-              <span>${inputData.tf} час</span>
-            </div>
-          </div>
+          <h2>Параметры грунта</h2>
+          <table>
+            <tr><th>Параметр</th><th>Значение</th></tr>
+            <tr><td>Подстилающий грунт</td><td>${inputData.subsoilName || inputData.soilData?.subsoilName || 'Не указано'}</td></tr>
+            <tr><td>Температура начала пучения (t<sub>0</sub>)</td><td>${inputData.t0 || inputData.soilData?.t0 || 'Не указано'} °C</td></tr>
+            <tr><td>Плотность сухого грунта (ρ<sub>d</sub>)</td><td>${inputData.pd || inputData.soilData?.pd || 'Не указано'} кг/м³</td></tr>
+            <tr><td>Влажность грунта (W)</td><td>${inputData.w || inputData.soilData?.w || 'Не указано'} д.е.</td></tr>
+            <tr><td>Влажность на границе раскатывания (W<sub>p</sub>)</td><td>${inputData.wp || inputData.soilData?.wp || 'Не указано'} д.е.</td></tr>
+            <tr><td>Число пластичности (J<sub>p</sub>)</td><td>${inputData.ip || inputData.soilData?.ip || 'Не указано'} д.е.</td></tr>
+            <tr><td>Коэффициент k<sub>w</sub></td><td>${inputData.kw || 0.65}</td></tr>
+          </table>
+
+          <h2>Климатические параметры</h2>
+          <table>
+            <tr><th>Параметр</th><th>Значение</th></tr>
+            <tr><td>Средняя температура (θ<sub>mp</sub>)</td><td>${inputData.tcp || inputData.climateData?.tcp || 'Не указано'} °C</td></tr>
+            <tr><td>Продолжительность промерзания (τ<sub>f</sub>)</td><td>${inputData.tf || inputData.climateData?.tf || 'Не указано'} час</td></tr>
+          </table>
         </div>
 
+        <div class="page-break"></div>
+
+        <!-- Результаты -->
         <div class="section">
-          <div class="section-title">Результаты расчета</div>
+          <h1>Результаты расчета</h1>
           <div class="result-box">
-            <div style="text-align: center; font-size: 20px; font-weight: bold; margin-bottom: 10px;">
-              Глубина промерзания Hₙ = ${result.Hn} м
-            </div>
-            <div class="risk-${result.riskLevel.includes('Низкий') ? 'low' : result.riskLevel.includes('Средний') ? 'medium' : 'high'}">
-              Оценка риска: ${result.riskLevel}
-            </div>
+            <h2>Глубина промерзания H<sub>n</sub> = ${result.Hn} м</h2>
+            <p>Оценка риска: ${result.riskLevel}</p>
           </div>
+
+          <h2>Сравнение методик расчета</h2>
+          <table>
+            <tr><th>СП 121.13330.2012</th><th>ТСН МФ-97 МО</th></tr>
+            <tr><td>${result.Hn} м</td><td>${result.Hn_TSN} м</td></tr>
+          </table>
+          <p style="text-align: center; margin-top: 10px;">
+            <strong>Разница между методиками:</strong> ${Math.abs(result.Hn - result.Hn_TSN).toFixed(3)} м
+          </p>
         </div>
 
+        ${detailedCalculations ? `
+        <div class="page-break"></div>
         <div class="section">
-          <div class="section-title">Сравнение методик</div>
-          <div class="comparison">
-            <div class="method">
-              <div style="font-weight: bold;">СП 121.13330.2012</div>
-              <div style="font-size: 18px;">${result.Hn} м</div>
-            </div>
-            <div class="method">
-              <div style="font-weight: bold;">ТСН МФ-97 МО</div>
-              <div style="font-size: 18px;">${result.Hn_TSN} м</div>
-            </div>
-          </div>
-        </div>
+          <h1>Детали расчета</h1>
 
-        <div class="section">
-          <div class="section-title">Методика расчета</div>
-          <div class="calculation-details">
-            <p><strong>Формула E.1 СП 121.13330.2012:</strong></p>
-            <div class="formula">
-              Hₙ = 1.9 × √(2λfτf) × (√(θmp/ηf) - √(t₀/ηf₀)) - Σ[tᵢ × √(λfηfᵢ/λfᵢηf)]
-            </div>
-            <p><strong>Расчет количества тепла фазовых переходов:</strong></p>
-            <div class="formula">
-              ηf = 0.5 × θmp × Cf + ρd × (w - ww) × 334
-            </div>
-            ${calculationDetails ? `
-              <p><strong>Детали расчета:</strong></p>
-              <div class="data-row">
-                <span class="data-label">Сумма слоев (Σ):</span>
-                <span>${calculationDetails.summation}</span>
-              </div>
-              <div class="data-row">
-                <span class="data-label">Часть 1 (1.9√(2λfτf)):</span>
-                <span>${calculationDetails.part1}</span>
-              </div>
-              <div class="data-row">
-                <span class="data-label">Часть 2 (√(θmp/ηf) - √(t₀/ηf₀)):</span>
-                <span>${calculationDetails.part2}</span>
-              </div>
-            ` : ''}
-          </div>
-        </div>
+          <h2>1. Расчет η<sub>f</sub> для слоев</h2>
+          <table>
+            <tr>
+              <th>Слой</th>
+              <th>Толщина, м</th>
+              <th>λ<sub>f</sub></th>
+              <th>C<sub>f</sub></th>
+              <th>ρ<sub>d</sub></th>
+              <th>w</th>
+              <th>η<sub>f</sub></th>
+            </tr>
+            ${detailedCalculations.layers?.map(layer => `
+              <tr>
+                <td>${layer.name || 'Слой'}</td>
+                <td>${layer.thickness}</td>
+                <td>${layer.lambda_f}</td>
+                <td>${layer.Cf}</td>
+                <td>${layer.pd}</td>
+                <td>${layer.w}</td>
+                <td>${layer.eta_f?.toFixed(1) || ''}</td>
+              </tr>
+            `).join('')}
+          </table>
 
+          <h2>2. Расчет суммы Σ</h2>
+          <table>
+            <tr><th>Параметр</th><th>Значение</th></tr>
+            <tr><td>λ<sub>f</sub> грунта</td><td>${detailedCalculations.lambda_f_grunt}</td></tr>
+            <tr><td>η<sub>f</sub> грунта</td><td>${detailedCalculations.eta_f_grunt?.toFixed(1)}</td></tr>
+            <tr><td>Сумма Σ</td><td>${detailedCalculations.sum_sigma?.toFixed(3)}</td></tr>
+          </table>
+
+          <h2>3. Расчет глубины промерзания H<sub>n</sub></h2>
+          <table>
+            <tr><th>Параметр</th><th>Значение</th></tr>
+            <tr><td>H<sub>n</sub></td><td>${detailedCalculations.Hn?.toFixed(3)} м</td></tr>
+          </table>
+        </div>
+        ` : ''}
+
+        <!-- Футер — только на последней странице -->
         <div class="footer">
-          <p>Сгенерировано приложением FrostRise</p>
           <p>Разработчик: Шишкина М.В.</p>
           <p>Научный руководитель: Шишкин В.Я.</p>
           <p>Методика: СП 121.13330.2012 "Аэродромы"</p>
         </div>
+
       </body>
       </html>
     `;
 
-    // Генерируем PDF
     const { uri } = await Print.printToFileAsync({
       html: htmlContent,
       base64: false

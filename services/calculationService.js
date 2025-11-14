@@ -137,8 +137,25 @@ export const CalculationService = {
         sf: (sf * 100).toFixed(1),
         riskLevel: riskLevel.level,
         riskColor: riskLevel.color,
+        calculationDetails: {
+          parameters: {
+            theta_mp: theta_mp,
+            tau_f: tau_f,
+            L: L,
+            t0: t0,
+            kw: kw,
+            wp: wp_soil
+          },
+          summation: summation,
+          part1: part1,
+          part2: part2,
+          eta_f_soil: eta_f_soil,
+          eta_f_0_soil: eta_f_0_soil
+        },
         success: true
       };
+
+      
 
       console.log('✅ РАСЧЕТ УСПЕШНО ЗАВЕРШЕН');
       return result;

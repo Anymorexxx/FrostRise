@@ -1,3 +1,4 @@
+// screens/InputScreen.js
 import React, { useState, useEffect, useContext } from 'react';
 import {
   View,
@@ -14,6 +15,7 @@ import {
 import { ThemeContext } from '../context/ThemeContext';
 import colors from '../constants/colors.js';
 import { DatabaseService } from '../database/database';
+import LayerSelection from '../components/LayerSelection';
 
 const InputScreen = ({ navigation }) => {
   const { theme } = useContext(ThemeContext);
@@ -111,21 +113,6 @@ const InputScreen = ({ navigation }) => {
     }
   };
 
-  const getFallbackSoils = () => {
-    return [
-      { code: '11_1', name: 'Песок гравелистый и крупный', lambda_f: 2.1, c_f: 2100, t0: 0.0, rho_d: 1500, w: 0.12, wp: 0.08, ip: 0.01 },
-      { code: '11_2', name: 'Песок мелкий и пылеватый', lambda_f: 1.8, c_f: 1800, t0: 0.2, rho_d: 1550, w: 0.13, wp: 0.09, ip: 0.015 },
-      { code: '12_1', name: 'Супесь легкая', lambda_f: 1.5, c_f: 1700, t0: 0.4, rho_d: 1600, w: 0.16, wp: 0.12, ip: 0.04 },
-      { code: '12_2', name: 'Супесь тяжелая', lambda_f: 1.4, c_f: 1600, t0: 0.4, rho_d: 1650, w: 0.17, wp: 0.13, ip: 0.06 },
-      { code: '13_1', name: 'Суглинок легкий', lambda_f: 1.3, c_f: 1500, t0: 0.6, rho_d: 1700, w: 0.19, wp: 0.15, ip: 0.08 },
-      { code: '13_2', name: 'Суглинок средний', lambda_f: 1.2, c_f: 1400, t0: 0.8, rho_d: 1750, w: 0.20, wp: 0.16, ip: 0.10 },
-      { code: '13_3', name: 'Суглинок тяжелый', lambda_f: 1.1, c_f: 1300, t0: 1.0, rho_d: 1800, w: 0.21, wp: 0.17, ip: 0.12 },
-      { code: '14_1', name: 'Глина легкая', lambda_f: 1.0, c_f: 1200, t0: 1.1, rho_d: 1850, w: 0.22, wp: 0.18, ip: 0.14 },
-      { code: '14_2', name: 'Глина средняя', lambda_f: 0.9, c_f: 1100, t0: 1.3, rho_d: 1900, w: 0.23, wp: 0.19, ip: 0.16 },
-      { code: '14_3', name: 'Глина тяжелая', lambda_f: 0.8, c_f: 1000, t0: 1.5, rho_d: 1950, w: 0.24, wp: 0.20, ip: 0.18 },
-    ];
-  };
-
   const showIGESelection = () => {
     if (!soils || soils.length === 0) {
       Alert.alert('Ошибка', 'Данные грунтов не загружены');
@@ -176,10 +163,10 @@ const InputScreen = ({ navigation }) => {
     setIp(selected.ip?.toString() || '0.16');
   };
 
-  const updateLayer = (layerId, field, value) => {
+  const updateLayer = (layerId, updates) => {
     setLayers(prevLayers => 
       prevLayers.map(layer => 
-        layer.id === layerId ? { ...layer, [field]: value } : layer
+        layer.id === layerId ? { ...layer, ...updates } : layer
       )
     );
   };
@@ -440,103 +427,24 @@ const InputScreen = ({ navigation }) => {
         </View>
       )}
 
-      {/* Расчетные слои */}
+      {/* Расчетные слои с новым компонентом выбора */}
       <View style={styles.sectionHeader}>
         <Text style={[styles.sectionTitle, { color: currentColors.sectionTitle }]}>
           Расчетные слои (5 слоев)
         </Text>
         <Text style={[styles.sectionSubtitle, { color: currentColors.inputText }]}>
-          Заполните параметры для используемых слоев (можно заполнить не все)
+          Нажмите на название слоя для выбора материала из БД или ручного ввода
         </Text>
       </View>
 
       {layers.map((layer) => (
-        <View key={layer.id} style={styles.layerContainer}>
-          <Text style={[styles.layerTitle, { color: currentColors.sectionTitle }]}>
-            {layer.name}
-          </Text>
-          
-          <View style={styles.inputRow}>
-            <Text style={[styles.inputLabel, { color: currentColors.inputText }]}>Толщина (м)</Text>
-            <TextInput
-              style={[styles.inputField, { 
-                backgroundColor: currentColors.inputBackground,
-                borderColor: currentColors.inputBorder,
-                color: currentColors.text 
-              }]}
-              value={layer.thickness}
-              onChangeText={(value) => updateLayer(layer.id, 'thickness', value)}
-              keyboardType="decimal-pad"
-              placeholder="0.20"
-              placeholderTextColor={currentColors.inputText}
-            />
-          </View>
-
-          <View style={styles.inputRow}>
-            <Text style={[styles.inputLabel, { color: currentColors.inputText }]}>Плотность (кг/м³)</Text>
-            <TextInput
-              style={[styles.inputField, { 
-                backgroundColor: currentColors.inputBackground,
-                borderColor: currentColors.inputBorder,
-                color: currentColors.text 
-              }]}
-              value={layer.density}
-              onChangeText={(value) => updateLayer(layer.id, 'density', value)}
-              keyboardType="decimal-pad"
-              placeholder="2300"
-              placeholderTextColor={currentColors.inputText}
-            />
-          </View>
-
-          <View style={styles.inputRow}>
-            <Text style={[styles.inputLabel, { color: currentColors.inputText }]}>Влажность (д.е.)</Text>
-            <TextInput
-              style={[styles.inputField, { 
-                backgroundColor: currentColors.inputBackground,
-                borderColor: currentColors.inputBorder,
-                color: currentColors.text 
-              }]}
-              value={layer.moisture}
-              onChangeText={(value) => updateLayer(layer.id, 'moisture', value)}
-              keyboardType="decimal-pad"
-              placeholder="0.03"
-              placeholderTextColor={currentColors.inputText}
-            />
-          </View>
-
-          {/* ДОБАВЛЕНЫ НОВЫЕ ПОЛЯ ДЛЯ λf и Cf */}
-          <View style={styles.inputRow}>
-            <Text style={[styles.inputLabel, { color: currentColors.inputText }]}>λf (Вт/(м·°C))</Text>
-            <TextInput
-              style={[styles.inputField, { 
-                backgroundColor: currentColors.inputBackground,
-                borderColor: currentColors.inputBorder,
-                color: currentColors.text 
-              }]}
-              value={layer.lambdaF}
-              onChangeText={(value) => updateLayer(layer.id, 'lambdaF', value)}
-              keyboardType="decimal-pad"
-              placeholder={lambdaF || "1.90"}
-              placeholderTextColor={currentColors.inputText}
-            />
-          </View>
-
-          <View style={styles.inputRow}>
-            <Text style={[styles.inputLabel, { color: currentColors.inputText }]}>Cf (кДж/(м³·°C))</Text>
-            <TextInput
-              style={[styles.inputField, { 
-                backgroundColor: currentColors.inputBackground,
-                borderColor: currentColors.inputBorder,
-                color: currentColors.text 
-              }]}
-              value={layer.cF}
-              onChangeText={(value) => updateLayer(layer.id, 'cF', value)}
-              keyboardType="decimal-pad"
-              placeholder={cF || "1675"}
-              placeholderTextColor={currentColors.inputText}
-            />
-          </View>
-        </View>
+        <LayerSelection
+          key={layer.id}
+          layer={layer}
+          onUpdate={updateLayer}
+          soilLambdaF={lambdaF}
+          soilCF={cF}
+        />
       ))}
 
       {/* Утеплитель (выключен) */}
@@ -714,19 +622,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontFamily: 'IBM-Plex-Mono-Regular',
     marginTop: 4,
-  },
-  layerContainer: {
-    marginBottom: 15,
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.1)',
-  },
-  layerTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    fontFamily: 'IBM-Plex-Mono-Bold',
-    marginBottom: 8,
   },
   constantRow: {
     flexDirection: 'row',
