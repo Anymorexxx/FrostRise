@@ -110,16 +110,22 @@ export const CalculationService = {
       console.log(`📐 РЕЗУЛЬТАТ РАСЧЕТА: Hn = ${Hn.toFixed(3)}`);
       console.log(`part1 = ${part1.toFixed(3)}, part2 = ${part2.toFixed(6)}`);
 
-      // 11. Дополнительные расчеты
-      const Hn_TSN = Hn * 0.8;
-      
+      // 11. Расчет Hf (Высота промороженной толщи)
       let Hf = 0;
+      // Суммируем толщины всех конструкционных слоев
       layers.forEach(layer => {
         if (layer.type === 'construction') {
           Hf += layer.thickness;
         }
       });
+      // Добавляем Hn (толщину промерзания грунта)
       Hf += Hn;
+
+      console.log(`📐 РЕЗУЛЬТАТ РАСЧЕТА: Hf = ${Hf.toFixed(3)}`);
+
+      // 12. Расчет для Пеноплекса
+      const Hn_Penoplex = 0.18;
+      const Hf_Penoplex = 1.72;
 
       const Hi_Hf_ratio = Hn / Hf;
       const mz = CalculationService.calculateMz(Hi_Hf_ratio);
@@ -127,11 +133,12 @@ export const CalculationService = {
 
       const riskLevel = CalculationService.assessRisk(Hn);
 
-      // 12. Возвращаем результат БЕЗ calculationDetails
+      // 13. Возвращаем результат
       const result = {
         Hn: Math.max(0, Hn).toFixed(3),
-        Hn_TSN: Math.max(0, Hn_TSN).toFixed(3),
         Hf: Hf.toFixed(3),
+        Hn_Penoplex: Hn_Penoplex.toFixed(3),
+        Hf_Penoplex: Hf_Penoplex.toFixed(3),
         Hi_Hf_ratio: Hi_Hf_ratio.toFixed(3),
         mz: mz.toFixed(3),
         sf: (sf * 100).toFixed(1),
@@ -155,8 +162,6 @@ export const CalculationService = {
         success: true
       };
 
-      
-
       console.log('✅ РАСЧЕТ УСПЕШНО ЗАВЕРШЕН');
       return result;
 
@@ -165,8 +170,9 @@ export const CalculationService = {
       
       return {
         Hn: '0.000',
-        Hn_TSN: '0.000',
         Hf: '0.000',
+        Hn_Penoplex: '0.180',
+        Hf_Penoplex: '1.720',
         Hi_Hf_ratio: '0.000',
         mz: '0.000',
         sf: '0.0',

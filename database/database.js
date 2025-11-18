@@ -26,7 +26,7 @@ const INITIAL_DATA = {
   materials: [
     { id: 1, material_type: 'Цементобетон', rho_d: 2300, w: 0.03, lambda_r: 1.85, lambda_f: 1.90, C_i: 2010, C_f: 1675 },
     { id: 2, material_type: 'Асфальтобетон', rho_d: 2200, w: 0.03, lambda_r: 1.30, lambda_f: 1.40, C_i: 3685, C_f: 3390 },
-    { id: 3, material_type: 'Пескоцемент', rho_d: 2000, w: 0.05, lambda_r: 1.65, lambda_f: 1.80, C_i: 2010, C_f: 1540 },
+    { id: 3, material_type: 'Пескоцемент', rho_d: 2000, w: 0.05, lambda_r: 1.65, lambda_f: 1.80, C_i: 2010, C_f: 1840 },
     { id: 4, material_type: 'Грунтоцемент', rho_d: 2000, w: 0.05, lambda_r: 1.40, lambda_f: 1.50, C_i: 1925, C_f: 1780 },
     { id: 5, material_type: 'Шлакобетон (1600)', rho_d: 1600, w: 0.05, lambda_r: 0.65, lambda_f: 0.80, C_i: 1800, C_f: 1675 },
     { id: 6, material_type: 'Шлакобетон (1300)', rho_d: 1300, w: 0.05, lambda_r: 0.45, lambda_f: 0.60, C_i: 1465, C_f: 1360 },

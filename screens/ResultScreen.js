@@ -164,56 +164,10 @@ const ResultScreen = ({ route, navigation }) => {
     };
   };
 
-  // Функция для создания графика в base64
-  const createChartForPDF = async (result) => {
-    try {
-      // Создаем простой SVG график
-      const svgContent = `<svg width="400" height="250" xmlns="http://www.w3.org/2000/svg">
-        <style>
-          .bar { fill: #4CAF50; }
-          .text { font-family: 'Times New Roman'; font-size: 14px; }
-          .title { font-family: 'Times New Roman'; font-size: 16px; font-weight: bold; }
-        </style>
-        
-        <!-- Заголовок -->
-        <text x="200" y="30" text-anchor="middle" class="title">Сравнение методик расчета</text>
-        
-        <!-- Оси -->
-        <line x1="50" y1="200" x2="350" y2="200" stroke="black" stroke-width="2"/>
-        <line x1="50" y1="200" x2="50" y2="50" stroke="black" stroke-width="2"/>
-        
-        <!-- Методика СП -->
-        <rect x="80" y="${200 - result.Hn * 100}" width="60" height="${result.Hn * 100}" class="bar"/>
-        <text x="110" y="220" text-anchor="middle" class="text">СП 121.13330</text>
-        <text x="110" y="${190 - result.Hn * 100}" text-anchor="middle" class="text">${result.Hn} м</text>
-        
-        <!-- Методика ТСН -->
-        <rect x="180" y="${200 - result.Hn_TSN * 100}" width="60" height="${result.Hn_TSN * 100}" class="bar"/>
-        <text x="210" y="220" text-anchor="middle" class="text">ТСН МФ-97</text>
-        <text x="210" y="${190 - result.Hn_TSN * 100}" text-anchor="middle" class="text">${result.Hn_TSN} м</text>
-        
-        <!-- Шкала -->
-        <text x="30" y="200" text-anchor="end" class="text">0</text>
-        <text x="30" y="150" text-anchor="end" class="text">0.5</text>
-        <text x="30" y="100" text-anchor="end" class="text">1.0</text>
-        <text x="30" y="50" text-anchor="end" class="text">1.5</text>
-      </svg>`;
-
-      // Конвертируем SVG в base64
-      const base64 = Buffer.from(svgContent).toString('base64');
-      return base64;
-      
-    } catch (error) {
-      console.warn('Could not create chart for PDF:', error);
-      return '';
-    }
-  };
-
   const handleExport = async () => {
-  try {
+    try {
       const detailedCalculations = prepareDetailedCalculations(inputData, calculationResult);
       
-      // Не передаем chartBase64 - график теперь создается в HTML
       const pdfData = {
         date: new Date().toLocaleDateString('ru-RU'),
         inputData: {
@@ -236,14 +190,15 @@ const ResultScreen = ({ route, navigation }) => {
         },
         result: {
           Hn: calculationResult.Hn,
-          Hn_TSN: calculationResult.Hn_TSN,
+          Hf: calculationResult.Hf,
+          Hn_Penoplex: calculationResult.Hn_Penoplex,
+          Hf_Penoplex: calculationResult.Hf_Penoplex,
           riskLevel: calculationResult.riskLevel,
           calculationDetails: calculationResult.calculationDetails
         },
         detailedCalculations: detailedCalculations
       };
 
-      // Передаем пустую строку вместо chartBase64
       const pdfPath = await generatePDF(pdfData, '');
       await Sharing.shareAsync(pdfPath, {
         mimeType: 'application/pdf',
@@ -279,22 +234,33 @@ const ResultScreen = ({ route, navigation }) => {
 
   const { 
     Hn, 
-    Hn_TSN, 
+    Hf,
+    Hn_Penoplex, 
+    Hf_Penoplex,
     riskLevel, 
     riskColor, 
     calculationDetails,
-    Hf,
     Hi_Hf_ratio,
     mz,
     sf 
   } = calculationResult;
 
-  const data = {
-    labels: ['СП 121.13330', 'ТСН МФ-97 МО'],
+  // Получаем короткое название грунта для графика
+  const getShortSoilName = () => {
+    const fullName = inputData.soilData.subsoilName || 'Грунт';
+    // Берем первые 10 символов для графика
+    return fullName.length > 10 ? fullName.substring(0, 10) + '...' : fullName;
+  };
+
+  const soilName = getShortSoilName();
+
+  // Данные для графика Hf
+  const dataHf = {
+    labels: [soilName, 'Пеноплекс'],
     datasets: [
       {
-        data: [parseFloat(Hn), parseFloat(Hn_TSN)],
-        colors: [(opacity = 1) => currentColors.chart.sp, (opacity = 1) => currentColors.chart.tsn],
+        data: [parseFloat(Hf), parseFloat(Hf_Penoplex)],
+        colors: [(opacity = 1) => currentColors.chart.sp, (opacity = 1) => currentColors.chart.penoplex],
       },
     ],
   };
@@ -321,7 +287,7 @@ const ResultScreen = ({ route, navigation }) => {
       contentContainerStyle={styles.contentContainer}
       showsVerticalScrollIndicator={false}
     >
-      {/* Результат Hn */}
+      {/* Основные результаты */}
       <View style={[styles.resultBox, { 
         backgroundColor: currentColors.inputBackground,
         borderColor: currentColors.inputBorder 
@@ -329,9 +295,12 @@ const ResultScreen = ({ route, navigation }) => {
         <Text style={[styles.resultText, { color: currentColors.text }]}>
           Hn = {Hn} м
         </Text>
-        <Text style={[styles.resultSubtext, { color: currentColors.text }]}>
-          по методике СП 121.13330.2012
-        </Text>
+        
+        <View style={styles.hfResult}>
+          <Text style={[styles.hfText, { color: currentColors.text }]}>
+            Hf = {Hf} м
+          </Text>
+        </View>
       </View>
 
       {/* Блок оценки риска */}
@@ -341,14 +310,17 @@ const ResultScreen = ({ route, navigation }) => {
         </Text>
       </View>
 
-      {/* График сравнения */}
+      {/* График сравнения Hf */}
       <View style={styles.chartContainer}>
+        <Text style={[styles.chartTitle, { color: currentColors.text }]}>
+          Сравнение Hf (высота промороженной толщи)
+        </Text>
         <BarChart
-          data={data}
+          data={dataHf}
           width={300}
           height={200}
           yAxisLabel=""
-          yAxisSuffix=""
+          yAxisSuffix=" м"
           chartConfig={chartConfig}
           verticalLabelRotation={30}
           fromZero={true}
@@ -357,14 +329,36 @@ const ResultScreen = ({ route, navigation }) => {
           <View style={styles.legendItem}>
             <View style={[styles.legendColor, { backgroundColor: currentColors.chart.sp }]} />
             <Text style={[styles.legendText, { color: currentColors.text }]}>
-              СП 121.13330
+              {inputData.soilData.subsoilName}
             </Text>
           </View>
           <View style={styles.legendItem}>
-            <View style={[styles.legendColor, { backgroundColor: currentColors.chart.tsn }]} />
+            <View style={[styles.legendColor, { backgroundColor: currentColors.chart.penoplex }]} />
             <Text style={[styles.legendText, { color: currentColors.text }]}>
-              ТСН МФ-97 МО
+              Пеноплекс
             </Text>
+          </View>
+        </View>
+      </View>
+
+      {/* Данные по Пеноплексу */}
+      <View style={[styles.detailsBox, { 
+        backgroundColor: currentColors.inputBackground,
+        borderColor: currentColors.inputBorder 
+      }]}>
+        <Text style={[styles.detailsTitle, { color: currentColors.text }]}>
+          Расчет для Пеноплекса:
+        </Text>
+        
+        <View style={styles.additionalResults}>
+          <View style={styles.resultRow}>
+            <Text style={[styles.resultLabel, { color: currentColors.inputText }]}>Hn (Пеноплекс):</Text>
+            <Text style={[styles.resultValue, { color: currentColors.text }]}>{Hn_Penoplex} м</Text>
+          </View>
+          
+          <View style={styles.resultRow}>
+            <Text style={[styles.resultLabel, { color: currentColors.inputText }]}>Hf (Пеноплекс):</Text>
+            <Text style={[styles.resultValue, { color: currentColors.text }]}>{Hf_Penoplex} м</Text>
           </View>
         </View>
       </View>
@@ -394,58 +388,6 @@ const ResultScreen = ({ route, navigation }) => {
 
       {/* Детали расчета с формулами */}
       <CalculationFormulas calculationDetails={calculationDetails} />
-
-      {/* Дополнительные результаты */}
-      <View style={[styles.detailsBox, { 
-        backgroundColor: currentColors.inputBackground,
-        borderColor: currentColors.inputBorder 
-      }]}>
-        <Text style={[styles.detailsTitle, { color: currentColors.text }]}>
-          Дополнительные результаты:
-        </Text>
-        
-        <View style={styles.additionalResults}>
-          <View style={styles.resultRow}>
-            <Text style={[styles.resultLabel, { color: currentColors.inputText }]}>Hf:</Text>
-            <Text style={[styles.resultValue, { color: currentColors.text }]}>{Hf} м</Text>
-          </View>
-          
-          <View style={styles.resultRow}>
-            <Text style={[styles.resultLabel, { color: currentColors.inputText }]}>Hi/Hf:</Text>
-            <Text style={[styles.resultValue, { color: currentColors.text }]}>{Hi_Hf_ratio}</Text>
-          </View>
-          
-          <View style={styles.resultRow}>
-            <Text style={[styles.resultLabel, { color: currentColors.inputText }]}>mz:</Text>
-            <Text style={[styles.resultValue, { color: currentColors.text }]}>{mz}</Text>
-          </View>
-          
-          <View style={styles.resultRow}>
-            <Text style={[styles.resultLabel, { color: currentColors.inputText }]}>Пучение:</Text>
-            <Text style={[styles.resultValue, { color: currentColors.text }]}>{sf} см</Text>
-          </View>
-        </View>
-      </View>
-
-      {/* Информация о грунте и климате */}
-      <View style={[styles.detailsBox, { 
-        backgroundColor: currentColors.inputBackground,
-        borderColor: currentColors.inputBorder 
-      }]}>
-        <Text style={[styles.detailsTitle, { color: currentColors.text }]}>
-          Исходные данные:
-        </Text>
-        
-        <View style={styles.inputData}>
-          <Text style={[styles.inputDataText, { color: currentColors.text }]}>
-            • Грунт: {inputData.soilData.subsoilName}{'\n'}
-            • ИГЭ: {inputData.selectedIGE}{'\n'}
-            • Tcp: {inputData.climateData.tcp} °C{'\n'}
-            • Tf: {inputData.climateData.tf} ч{'\n'}
-            • Количество слоев: {inputData.layers.length}
-          </Text>
-        </View>
-      </View>
 
       {/* Кнопки */}
       <TouchableOpacity
@@ -511,6 +453,25 @@ const styles = StyleSheet.create({
     marginTop: 5,
     fontFamily: 'IBM-Plex-Mono-Regular',
   },
+  hfResult: {
+    marginTop: 15,
+    paddingTop: 15,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.1)',
+    alignItems: 'center',
+  },
+  hfText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    fontFamily: 'IBM-Plex-Mono-Bold',
+  },
+  hfSubtext: {
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 5,
+    fontFamily: 'IBM-Plex-Mono-Regular',
+  },
   riskBox: {
     padding: 15,
     borderRadius: 8,
@@ -526,6 +487,13 @@ const styles = StyleSheet.create({
   chartContainer: {
     marginBottom: 20,
     alignItems: 'center',
+  },
+  chartTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 10,
+    fontFamily: 'IBM-Plex-Mono-Bold',
   },
   legend: {
     flexDirection: 'row',
@@ -546,6 +514,7 @@ const styles = StyleSheet.create({
   legendText: {
     fontSize: 12,
     fontFamily: 'IBM-Plex-Mono-Regular',
+    maxWidth: 120,
   },
   detailsBox: {
     padding: 15,

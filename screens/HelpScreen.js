@@ -34,8 +34,8 @@ const HelpScreen = ({ navigation }) => {
       <View style={styles.section}>
         <Text style={[styles.sectionTitle, { color: currentColors.sectionTitle }]}>Методика расчета:</Text>
         <Text style={[styles.text, { color: currentColors.text }]}>
-          Адаптированная методика ТСН МФ-97 МО, учитывающая нагрузку от сооружения.
-          Позволяет избежать завышенных расчетов по СП 121.13330.2012.
+          Адаптированная методика СП 121.13330.2012, учитывающая нагрузку от сооружения.
+          Включает сравнение с расчетом морозного пучения Пеноплекса.
         </Text>
       </View>
 
@@ -44,13 +44,12 @@ const HelpScreen = ({ navigation }) => {
         <Text style={[styles.sectionTitle, { color: currentColors.sectionTitle }]}>Авторы:</Text>
         <Text style={[styles.text, { color: currentColors.text }]}>Разработчик: Шишкина М.В.</Text>
         <Text style={[styles.text, { color: currentColors.text }]}>Научный руководитель: Шишкин В.Я.</Text>
-        <Text style={[styles.text, { color: currentColors.text }]}>Дизайнер: Шишкина Н.В.</Text>
       </View>
 
       {/* Контакты */}
       <View style={styles.section}>
         <Text style={[styles.sectionTitle, { color: currentColors.sectionTitle }]}>Контакты:</Text>
-        <Text style={[styles.text, { color: currentColors.text }]}>example@university.ru</Text>
+        <Text style={[styles.text, { color: currentColors.text }]}>exzzz04@mail.ru</Text>
       </View>
 
       {/* Политика конфиденциальности */}
