@@ -35,7 +35,7 @@ const lightTheme = {
   // График
   chart: {
     sp: '#7289F8',   // СП 121.13330
-    tsn: '#FF8652',  // ТСН МФ-97 МО
+    penoplex: '#FF8652',  // Пеноплекса
   },
 
   // История расчётов
@@ -72,7 +72,7 @@ const darkTheme = {
 
   chart: {
     sp: '#7289F8',
-    tsn: '#FF8652',
+    penoplex: '#FF8652',
   },
 
   tag: '#5173E2',

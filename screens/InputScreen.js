@@ -1,3 +1,4 @@
+// screens/InputScreen.js
 import React, { useState, useEffect, useContext } from 'react';
 import {
   View,
@@ -9,10 +10,12 @@ import {
   ScrollView,
   Platform,
   ActionSheetIOS,
+  Switch,
 } from 'react-native';
 import { ThemeContext } from '../context/ThemeContext';
 import colors from '../constants/colors.js';
 import { DatabaseService } from '../database/database';
+import LayerSelection from '../components/LayerSelection';
 
 const InputScreen = ({ navigation }) => {
   const { theme } = useContext(ThemeContext);
@@ -22,17 +25,69 @@ const InputScreen = ({ navigation }) => {
   const [selectedIGEName, setSelectedIGEName] = useState('');
   const [lambdaF, setLambdaF] = useState('');
   const [cF, setCf] = useState('');
-  const [thickness, setThickness] = useState('');
-  const [density, setDensity] = useState('');
-  const [moisture, setMoisture] = useState('');
-  const [subsoilName, setSubsoilName] = useState('');
   const [t0, setT0] = useState('');
   const [pd, setPd] = useState('');
   const [w, setW] = useState('');
   const [wp, setWp] = useState('');
   const [ip, setIp] = useState('');
+  const [subsoilName, setSubsoilName] = useState('');
+  
+  // Климатические параметры
   const [tcp, setTcp] = useState('');
   const [tf, setTf] = useState('');
+  
+  // Расчетные слои (5 слоев)
+  const [layers, setLayers] = useState([
+    { 
+      id: 1, 
+      name: 'Слой 1',
+      thickness: '',
+      density: '',
+      moisture: '',
+      lambdaF: '',
+      cF: ''
+    },
+    { 
+      id: 2, 
+      name: 'Слой 2',
+      thickness: '',
+      density: '',
+      moisture: '',
+      lambdaF: '',
+      cF: ''
+    },
+    { 
+      id: 3, 
+      name: 'Слой 3',
+      thickness: '',
+      density: '',
+      moisture: '',
+      lambdaF: '',
+      cF: ''
+    },
+    { 
+      id: 4, 
+      name: 'Слой 4',
+      thickness: '',
+      density: '',
+      moisture: '',
+      lambdaF: '',
+      cF: ''
+    },
+    { 
+      id: 5, 
+      name: 'Слой 5',
+      thickness: '',
+      density: '',
+      moisture: '',
+      lambdaF: '',
+      cF: ''
+    }
+  ]);
+
+  // Утеплитель (пока выключен)
+  const [insulationEnabled, setInsulationEnabled] = useState(false);
+
   const [soils, setSoils] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -52,26 +107,10 @@ const InputScreen = ({ navigation }) => {
       console.log('Soils loaded successfully:', soilsData.length);
     } catch (error) {
       console.error('Error loading soils from DB:', error);
-      // Используем fallback данные
       setSoils(getFallbackSoils());
     } finally {
       setLoading(false);
     }
-  };
-
-  const getFallbackSoils = () => {
-    return [
-      { code: '11_1', name: 'Песок гравелистый и крупный', lambda_f: 2.1, c_f: 2100, t0: 0.0, rho_d: 1500, w: 0.12, wp: 0.08, ip: 0.01 },
-      { code: '11_2', name: 'Песок мелкий и пылеватый', lambda_f: 1.8, c_f: 1800, t0: 0.2, rho_d: 1550, w: 0.13, wp: 0.09, ip: 0.015 },
-      { code: '12_1', name: 'Супесь легкая', lambda_f: 1.5, c_f: 1700, t0: 0.4, rho_d: 1600, w: 0.16, wp: 0.12, ip: 0.04 },
-      { code: '12_2', name: 'Супесь тяжелая', lambda_f: 1.4, c_f: 1600, t0: 0.4, rho_d: 1650, w: 0.17, wp: 0.13, ip: 0.06 },
-      { code: '13_1', name: 'Суглинок легкий', lambda_f: 1.3, c_f: 1500, t0: 0.6, rho_d: 1700, w: 0.19, wp: 0.15, ip: 0.08 },
-      { code: '13_2', name: 'Суглинок средний', lambda_f: 1.2, c_f: 1400, t0: 0.8, rho_d: 1750, w: 0.20, wp: 0.16, ip: 0.10 },
-      { code: '13_3', name: 'Суглинок тяжелый', lambda_f: 1.1, c_f: 1300, t0: 1.0, rho_d: 1800, w: 0.21, wp: 0.17, ip: 0.12 },
-      { code: '14_1', name: 'Глина легкая', lambda_f: 1.0, c_f: 1200, t0: 1.1, rho_d: 1850, w: 0.22, wp: 0.18, ip: 0.14 },
-      { code: '14_2', name: 'Глина средняя', lambda_f: 0.9, c_f: 1100, t0: 1.3, rho_d: 1900, w: 0.23, wp: 0.19, ip: 0.16 },
-      { code: '14_3', name: 'Глина тяжелая', lambda_f: 0.8, c_f: 1000, t0: 1.5, rho_d: 1950, w: 0.24, wp: 0.20, ip: 0.18 },
-    ];
   };
 
   const showIGESelection = () => {
@@ -124,45 +163,53 @@ const InputScreen = ({ navigation }) => {
     setIp(selected.ip?.toString() || '0.16');
   };
 
-  useEffect(() => {
-    if (!selectedIGE) {
-      // Сбрасываем константы при отсутствии выбора
-      setLambdaF('');
-      setCf('');
-      setT0('');
-    }
-  }, [selectedIGE]);
+  const updateLayer = (layerId, updates) => {
+    setLayers(prevLayers => 
+      prevLayers.map(layer => 
+        layer.id === layerId ? { ...layer, ...updates } : layer
+      )
+    );
+  };
 
   const isFormValid = () => {
-    const requiredFields = [
-      selectedIGE, thickness, density, moisture, subsoilName, 
-      t0, pd, w, wp, ip, tcp, tf
-    ];
-    
-    return requiredFields.every(field => field && field.toString().trim() !== '');
+    // Проверяем выбор ИГЭ
+    if (!selectedIGE) return false;
+
+    // Проверяем обязательные поля грунта
+    const soilFields = [pd, w, wp, ip, t0];
+    if (!soilFields.every(field => field && field.toString().trim() !== '')) {
+      return false;
+    }
+
+    // Проверяем климатические параметры
+    if (!tcp || !tf) return false;
+
+    // Проверяем, что хотя бы один слой заполнен
+    const hasValidLayer = layers.some(layer => 
+      layer.thickness && layer.density && layer.moisture
+    );
+
+    return hasValidLayer;
   };
 
   const handleCalculate = () => {
     if (!isFormValid()) {
-      Alert.alert('Ошибка', 'Заполните все обязательные поля');
+      Alert.alert('Ошибка', 'Заполните все обязательные поля и хотя бы один расчетный слой');
       return;
     }
 
-    // Валидация числовых значений
-    const numericFields = [
-      { value: thickness, name: 'Толщина' },
-      { value: density, name: 'Плотность' },
-      { value: moisture, name: 'Влажность' },
+    // Валидация числовых значений грунта
+    const soilNumericFields = [
+      { value: pd, name: 'Плотность сухого грунта' },
+      { value: w, name: 'Влажность грунта' },
+      { value: wp, name: 'Влажность на границе раскатывания' },
+      { value: ip, name: 'Число пластичности' },
       { value: t0, name: 't0' },
-      { value: pd, name: 'pd' },
-      { value: w, name: 'W' },
-      { value: wp, name: 'Wp' },
-      { value: ip, name: 'Jp' },
-      { value: tcp, name: 'Tcp' },
-      { value: tf, name: 'Tf' }
+      { value: tcp, name: 'Средняя температура' },
+      { value: tf, name: 'Продолжительность промерзания' }
     ];
 
-    for (let field of numericFields) {
+    for (let field of soilNumericFields) {
       const value = parseFloat(field.value);
       if (isNaN(value)) {
         Alert.alert('Ошибка', `Поле "${field.name}" должно быть числом`);
@@ -174,9 +221,57 @@ const InputScreen = ({ navigation }) => {
       }
     }
 
-    // Проверка специфических диапазонов
-    if (parseFloat(moisture) > 1 || parseFloat(w) > 1 || parseFloat(wp) > 1) {
+    // Валидация влажности
+    if (parseFloat(w) > 1 || parseFloat(wp) > 1) {
       Alert.alert('Ошибка', 'Влажность должна быть в диапазоне 0-1');
+      return;
+    }
+
+    // Валидация расчетных слоев
+    for (let layer of layers) {
+      if (layer.thickness || layer.density || layer.moisture) {
+        const layerFields = [
+          { value: layer.thickness, name: `Толщина слоя ${layer.id}` },
+          { value: layer.density, name: `Плотность слоя ${layer.id}` },
+          { value: layer.moisture, name: `Влажность слоя ${layer.id}` },
+          { value: layer.lambdaF, name: `λf слоя ${layer.id}` },
+          { value: layer.cF, name: `Cf слоя ${layer.id}` }
+        ];
+
+        for (let field of layerFields) {
+          // Проверяем только заполненные поля
+          if (field.value && field.value.toString().trim() !== '') {
+            const value = parseFloat(field.value);
+            if (isNaN(value)) {
+              Alert.alert('Ошибка', `Поле "${field.name}" должно быть числом`);
+              return;
+            }
+            if (value < 0) {
+              Alert.alert('Ошибка', `Поле "${field.name}" должно быть положительным числом`);
+              return;
+            }
+          }
+        }
+
+        if (parseFloat(layer.moisture) > 1) {
+          Alert.alert('Ошибка', `Влажность слоя ${layer.id} должна быть в диапазоне 0-1`);
+          return;
+        }
+      }
+    }
+
+    // Фильтруем только заполненные слои и устанавливаем значения по умолчанию для пустых полей
+    const filledLayers = layers
+      .filter(layer => layer.thickness && layer.density && layer.moisture)
+      .map(layer => ({
+        ...layer,
+        // Если lambdaF или cF не заполнены, используем значения из грунта
+        lambdaF: layer.lambdaF || lambdaF,
+        cF: layer.cF || cF
+      }));
+
+    if (filledLayers.length === 0) {
+      Alert.alert('Ошибка', 'Заполните хотя бы один расчетный слой');
       return;
     }
 
@@ -184,19 +279,22 @@ const InputScreen = ({ navigation }) => {
     navigation.navigate('Result', {
       inputData: {
         selectedIGE,
-        lambdaF: lambdaF || '1.9',
-        cF: cF || '1675', 
-        thickness,
-        density,
-        moisture,
-        subsoilName,
-        t0,
-        pd,
-        w,
-        wp,
-        ip,
-        tcp,
-        tf,
+        soilData: {
+          lambdaF,
+          cF,
+          t0,
+          pd,
+          w,
+          wp,
+          ip,
+          subsoilName
+        },
+        layers: filledLayers,
+        climateData: {
+          tcp,
+          tf
+        },
+        insulationEnabled
       },
     });
   };
@@ -206,17 +304,22 @@ const InputScreen = ({ navigation }) => {
     setSelectedIGEName('');
     setLambdaF('');
     setCf('');
-    setThickness('');
-    setDensity('');
-    setMoisture('');
-    setSubsoilName('');
     setT0('');
     setPd('');
     setW('');
     setWp('');
     setIp('');
+    setSubsoilName('');
     setTcp('');
     setTf('');
+    setLayers([
+      { id: 1, name: 'Слой 1', thickness: '', density: '', moisture: '', lambdaF: '', cF: '' },
+      { id: 2, name: 'Слой 2', thickness: '', density: '', moisture: '', lambdaF: '', cF: '' },
+      { id: 3, name: 'Слой 3', thickness: '', density: '', moisture: '', lambdaF: '', cF: '' },
+      { id: 4, name: 'Слой 4', thickness: '', density: '', moisture: '', lambdaF: '', cF: '' },
+      { id: 5, name: 'Слой 5', thickness: '', density: '', moisture: '', lambdaF: '', cF: '' }
+    ]);
+    setInsulationEnabled(false);
   };
 
   if (loading) {
@@ -237,7 +340,7 @@ const InputScreen = ({ navigation }) => {
       contentContainerStyle={styles.contentContainer}
       showsVerticalScrollIndicator={false}
     >
-      {/* Кнопка выбора ИГЭ в стиле iOS */}
+      {/* Кнопка выбора ИГЭ */}
       <View style={styles.igeSelectionContainer}>
         <TouchableOpacity 
           style={[styles.igeSelectionButton, { 
@@ -253,10 +356,13 @@ const InputScreen = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
-      {/* Константы появляются только при выбранном ИГЭ */}
+      {/* Характеристики грунта (только для чтения) */}
       {selectedIGE ? (
-        <>
-          {/* λf с единицами измерения */}
+        <View style={styles.soilPropertiesContainer}>
+          <Text style={[styles.sectionTitle, { color: currentColors.sectionTitle }]}>
+            Характеристики грунта (из БД)
+          </Text>
+          
           <View style={styles.constantRow}>
             <Text style={[styles.constantLabel, { color: currentColors.constantText }]}>λf:</Text>
             <View style={styles.constantValueContainer}>
@@ -265,7 +371,6 @@ const InputScreen = ({ navigation }) => {
             </View>
           </View>
 
-          {/* Cf с единицами измерения */}
           <View style={styles.constantRow}>
             <Text style={[styles.constantLabel, { color: currentColors.constantText }]}>Cf:</Text>
             <View style={styles.constantValueContainer}>
@@ -274,7 +379,6 @@ const InputScreen = ({ navigation }) => {
             </View>
           </View>
 
-          {/* t0 с единицами измерения */}
           <View style={styles.constantRow}>
             <Text style={[styles.constantLabel, { color: currentColors.constantText }]}>t0:</Text>
             <View style={styles.constantValueContainer}>
@@ -282,157 +386,90 @@ const InputScreen = ({ navigation }) => {
               <Text style={[styles.constantUnit, { color: currentColors.constantText }]}>°C</Text>
             </View>
           </View>
-        </>
+
+          <View style={styles.constantRow}>
+            <Text style={[styles.constantLabel, { color: currentColors.constantText }]}>ρd:</Text>
+            <View style={styles.constantValueContainer}>
+              <Text style={[styles.constantValue, { color: currentColors.constantText }]}>{pd}</Text>
+              <Text style={[styles.constantUnit, { color: currentColors.constantText }]}>кг/м³</Text>
+            </View>
+          </View>
+
+          <View style={styles.constantRow}>
+            <Text style={[styles.constantLabel, { color: currentColors.constantText }]}>W:</Text>
+            <View style={styles.constantValueContainer}>
+              <Text style={[styles.constantValue, { color: currentColors.constantText }]}>{w}</Text>
+              <Text style={[styles.constantUnit, { color: currentColors.constantText }]}>д.е.</Text>
+            </View>
+          </View>
+
+          <View style={styles.constantRow}>
+            <Text style={[styles.constantLabel, { color: currentColors.constantText }]}>Wp:</Text>
+            <View style={styles.constantValueContainer}>
+              <Text style={[styles.constantValue, { color: currentColors.constantText }]}>{wp}</Text>
+              <Text style={[styles.constantUnit, { color: currentColors.constantText }]}>д.е.</Text>
+            </View>
+          </View>
+
+          <View style={styles.constantRow}>
+            <Text style={[styles.constantLabel, { color: currentColors.constantText }]}>Jp:</Text>
+            <View style={styles.constantValueContainer}>
+              <Text style={[styles.constantValue, { color: currentColors.constantText }]}>{ip}</Text>
+              <Text style={[styles.constantUnit, { color: currentColors.constantText }]}>д.е.</Text>
+            </View>
+          </View>
+        </View>
       ) : (
         <View style={styles.noSelectionContainer}>
           <Text style={[styles.noSelectionText, { color: currentColors.constantText }]}>
-            Выберите тип грунта для отображения констант
+            Выберите тип грунта для отображения характеристик
           </Text>
         </View>
       )}
 
-      {/* Секция: Параметры покрытия */}
+      {/* Расчетные слои с новым компонентом выбора */}
       <View style={styles.sectionHeader}>
         <Text style={[styles.sectionTitle, { color: currentColors.sectionTitle }]}>
-          Параметры покрытия
+          Расчетные слои (5 слоев)
+        </Text>
+        <Text style={[styles.sectionSubtitle, { color: currentColors.inputText }]}>
+          Нажмите на название слоя для выбора материала из БД или ручного ввода
         </Text>
       </View>
 
-      <View style={styles.inputRow}>
-        <Text style={[styles.inputLabel, { color: currentColors.inputText }]}>Толщина покрытия (м)</Text>
-        <TextInput
-          style={[styles.inputField, { 
-            backgroundColor: currentColors.inputBackground,
-            borderColor: currentColors.inputBorder,
-            color: currentColors.text 
-          }]}
-          value={thickness}
-          onChangeText={setThickness}
-          keyboardType="decimal-pad"
-          placeholder="0.20"
-          placeholderTextColor={currentColors.inputText}
+      {layers.map((layer) => (
+        <LayerSelection
+          key={layer.id}
+          layer={layer}
+          onUpdate={updateLayer}
+          soilLambdaF={lambdaF}
+          soilCF={cF}
         />
-      </View>
+      ))}
 
-      <View style={styles.inputRow}>
-        <Text style={[styles.inputLabel, { color: currentColors.inputText }]}>Плотность покрытия (кг/м³)</Text>
-        <TextInput
-          style={[styles.inputField, { 
-            backgroundColor: currentColors.inputBackground,
-            borderColor: currentColors.inputBorder,
-            color: currentColors.text 
-          }]}
-          value={density}
-          onChangeText={setDensity}
-          keyboardType="decimal-pad"
-          placeholder="2300"
-          placeholderTextColor={currentColors.inputText}
-        />
-      </View>
-
-      <View style={styles.inputRow}>
-        <Text style={[styles.inputLabel, { color: currentColors.inputText }]}>Влажность покрытия W (д.е.)</Text>
-        <TextInput
-          style={[styles.inputField, { 
-            backgroundColor: currentColors.inputBackground,
-            borderColor: currentColors.inputBorder,
-            color: currentColors.text 
-          }]}
-          value={moisture}
-          onChangeText={setMoisture}
-          keyboardType="decimal-pad"
-          placeholder="0.03"
-          placeholderTextColor={currentColors.inputText}
-        />
-      </View>
-
-      {/* Секция: Параметры грунта */}
+      {/* Утеплитель (выключен) */}
       <View style={styles.sectionHeader}>
         <Text style={[styles.sectionTitle, { color: currentColors.sectionTitle }]}>
-          Параметры грунта
+          Утеплитель
         </Text>
       </View>
-
-      <View style={styles.inputRow}>
-        <Text style={[styles.inputLabel, { color: currentColors.inputText }]}>Название подстилающего грунта</Text>
-        <TextInput
-          style={[styles.inputField, { 
-            backgroundColor: currentColors.inputBackground,
-            borderColor: currentColors.inputBorder,
-            color: currentColors.text 
-          }]}
-          value={subsoilName}
-          onChangeText={setSubsoilName}
-          placeholder="Глина полутвердая"
-          placeholderTextColor={currentColors.inputText}
+      
+      <View style={styles.insulationContainer}>
+        <Text style={[styles.insulationLabel, { color: currentColors.inputText }]}>
+          Использовать утеплитель
+        </Text>
+        <Switch
+          value={insulationEnabled}
+          onValueChange={setInsulationEnabled}
+          disabled={true}
+          trackColor={{ false: currentColors.inputBorder, true: currentColors.primaryButton }}
         />
       </View>
+      <Text style={[styles.insulationNote, { color: currentColors.constantText }]}>
+        Модуль утеплителя будет доступен в следующем обновлении
+      </Text>
 
-      <View style={styles.inputRow}>
-        <Text style={[styles.inputLabel, { color: currentColors.inputText }]}>Плотность сухого грунта pd (кг/м³)</Text>
-        <TextInput
-          style={[styles.inputField, { 
-            backgroundColor: currentColors.inputBackground,
-            borderColor: currentColors.inputBorder,
-            color: currentColors.text 
-          }]}
-          value={pd}
-          onChangeText={setPd}
-          keyboardType="decimal-pad"
-          placeholder="1800"
-          placeholderTextColor={currentColors.inputText}
-        />
-      </View>
-
-      <View style={styles.inputRow}>
-        <Text style={[styles.inputLabel, { color: currentColors.inputText }]}>Влажность грунта W (д.е.)</Text>
-        <TextInput
-          style={[styles.inputField, { 
-            backgroundColor: currentColors.inputBackground,
-            borderColor: currentColors.inputBorder,
-            color: currentColors.text 
-          }]}
-          value={w}
-          onChangeText={setW}
-          keyboardType="decimal-pad"
-          placeholder="0.21"
-          placeholderTextColor={currentColors.inputText}
-        />
-      </View>
-
-      <View style={styles.inputRow}>
-        <Text style={[styles.inputLabel, { color: currentColors.inputText }]}>Влажность на границе раскатывания Wp</Text>
-        <TextInput
-          style={[styles.inputField, { 
-            backgroundColor: currentColors.inputBackground,
-            borderColor: currentColors.inputBorder,
-            color: currentColors.text 
-          }]}
-          value={wp}
-          onChangeText={setWp}
-          keyboardType="decimal-pad"
-          placeholder="0.18"
-          placeholderTextColor={currentColors.inputText}
-        />
-      </View>
-
-      <View style={styles.inputRow}>
-        <Text style={[styles.inputLabel, { color: currentColors.inputText }]}>Число пластичности Jp</Text>
-        <TextInput
-          style={[styles.inputField, { 
-            backgroundColor: currentColors.inputBackground,
-            borderColor: currentColors.inputBorder,
-            color: currentColors.text 
-          }]}
-          value={ip}
-          onChangeText={setIp}
-          keyboardType="decimal-pad"
-          placeholder="0.16"
-          placeholderTextColor={currentColors.inputText}
-        />
-      </View>
-
-      {/* Секция: Климатические параметры */}
+      {/* Климатические параметры */}
       <View style={styles.sectionHeader}>
         <Text style={[styles.sectionTitle, { color: currentColors.sectionTitle }]}>
           Климатические параметры
@@ -563,6 +600,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginLeft: 8,
   },
+  soilPropertiesContainer: {
+    marginBottom: 20,
+    padding: 15,
+    borderRadius: 8,
+    backgroundColor: 'rgba(0,0,0,0.03)',
+  },
   sectionHeader: {
     marginTop: 20,
     marginBottom: 15,
@@ -575,15 +618,20 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontFamily: 'IBM-Plex-Mono-Bold',
   },
+  sectionSubtitle: {
+    fontSize: 12,
+    fontFamily: 'IBM-Plex-Mono-Regular',
+    marginTop: 4,
+  },
   constantRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 15,
-    paddingVertical: 8,
+    marginBottom: 8,
+    paddingVertical: 4,
   },
   constantLabel: {
-    fontSize: 16,
+    fontSize: 14,
     fontFamily: 'IBM-Plex-Mono-Regular',
     fontWeight: '500',
     flex: 1,
@@ -595,35 +643,35 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   constantValue: {
-    fontSize: 16,
+    fontSize: 14,
     fontFamily: 'IBM-Plex-Mono-Regular',
     marginRight: 8,
     fontWeight: '500',
   },
   constantUnit: {
-    fontSize: 14,
+    fontSize: 12,
     fontFamily: 'IBM-Plex-Mono-Regular',
     opacity: 0.8,
   },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 15,
+    marginBottom: 10,
     justifyContent: 'space-between',
   },
   inputLabel: {
-    fontSize: 14,
+    fontSize: 12,
     fontFamily: 'IBM-Plex-Mono-Regular',
     fontWeight: '500',
     flex: 1,
   },
   inputField: {
-    height: 44,
+    height: 36,
     borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 12,
+    borderRadius: 6,
+    paddingHorizontal: 10,
     fontFamily: 'IBM-Plex-Mono-Regular',
-    fontSize: 14,
+    fontSize: 12,
     flex: 2,
     ...Platform.select({
       ios: {
@@ -633,6 +681,23 @@ const styles = StyleSheet.create({
         shadowRadius: 2,
       },
     }),
+  },
+  insulationContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  insulationLabel: {
+    fontSize: 14,
+    fontFamily: 'IBM-Plex-Mono-Regular',
+  },
+  insulationNote: {
+    fontSize: 11,
+    fontFamily: 'IBM-Plex-Mono-Regular',
+    fontStyle: 'italic',
+    textAlign: 'center',
+    marginBottom: 20,
   },
   buttonContainer: {
     marginTop: 25,

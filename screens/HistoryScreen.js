@@ -36,14 +36,33 @@ const HistoryScreen = ({ navigation }) => {
 
   const filteredHistory = history.filter(item =>
     item.igE?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    item.soilName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     item.date?.includes(searchQuery) ||
     item.df?.toString().includes(searchQuery)
   );
 
+  const formatDate = (timestamp) => {
+    if (!timestamp) return 'Дата не указана';
+    try {
+      const date = new Date(timestamp);
+      return date.toLocaleDateString('ru-RU') + ' ' + date.toLocaleTimeString('ru-RU', {
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    } catch (error) {
+      return 'Неверная дата';
+    }
+  };
+
   const handleView = (item) => {
+    const layersInfo = item.layers ? 
+    item.layers.map(layer => 
+      `${layer.name}: ${layer.thickness} м, ${layer.density} кг/м³`
+    ).join('\n') : 'Нет данных о слоях';
+
     Alert.alert(
       'Детали расчёта',
-      `Дата: ${item.date}\nИГЭ: ${item.igE}\ndf: ${item.df}\nТолщина: ${item.thickness} м\nПлотность: ${item.density} кг/м³`,
+      `Дата: ${formatDate(item.timestamp)}\nИГЭ: ${item.igE}\nГрунт: ${item.soilName || 'Не указан'}\nГлубина промерзания: ${item.df} м\nКоличество слоев: ${item.layers?.length || 0} из 5\n\nСлои:\n${layersInfo}`,
       [{ text: 'OK' }]
     );
   };
@@ -86,6 +105,77 @@ const HistoryScreen = ({ navigation }) => {
     }
   };
 
+  const renderHistoryItem = ({ item }) => (
+    <View style={[styles.historyItem, { 
+      backgroundColor: currentColors.inputBackground,
+      borderColor: currentColors.inputBorder 
+    }]}>
+      <Text style={[styles.date, { color: currentColors.text }]}>
+        {formatDate(item.timestamp)}
+      </Text>
+      
+      <View style={styles.resultRow}>
+        <View style={[styles.tag, { backgroundColor: currentColors.tag }]}>
+          <Text style={[styles.tagText, { color: currentColors.text }]}>{item.igE}</Text>
+        </View>
+        <View style={[styles.tag, { backgroundColor: currentColors.tag }]}>
+          <Text style={[styles.tagText, { color: currentColors.text }]}>Hn = {item.df} м</Text>
+        </View>
+      </View>
+
+      {item.soilName && (
+        <Text style={[styles.soilName, { color: currentColors.text }]}>
+          {item.soilName}
+        </Text>
+      )}
+
+      {item.layers && item.layers.length > 0 && (
+        <Text style={[styles.layersInfo, { color: currentColors.constantText }]}>
+          Слоев: {item.layers.length}
+        </Text>
+      )}
+
+      {item.riskLevel && (
+        <View style={[styles.riskTag, { backgroundColor: getRiskColor(item.riskLevel) }]}>
+          <Text style={[styles.riskText, { color: currentColors.text }]}>
+            {item.riskLevel}
+          </Text>
+        </View>
+      )}
+
+      <View style={styles.buttonRow}>
+        <TouchableOpacity
+          style={[styles.actionButton, { backgroundColor: currentColors.primaryButton }]}
+          onPress={() => handleView(item)}
+        >
+          <Text style={[styles.buttonText, { color: currentColors.text }]}>Подробнее</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.actionButton, { backgroundColor: currentColors.exportButton }]}
+          onPress={() => handleExport(item)}
+        >
+          <Text style={[styles.buttonText, { color: currentColors.text }]}>Экспорт</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.actionButton, styles.deleteButton, { backgroundColor: currentColors.clearHistory }]}
+          onPress={() => handleDeleteItem(item.id)}
+        >
+          <Text style={[styles.buttonText, { color: currentColors.text }]}>Удалить</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
+  // Функция для получения цвета риска
+  const getRiskColor = (riskLevel) => {
+    switch (riskLevel) {
+      case 'Низкий риск': return '#52BC6A';
+      case 'Средний риск': return '#F3CC56';
+      case 'Высокий риск': return '#BD3F4B';
+      default: return currentColors.tag;
+    }
+  };
+
   return (
     <View style={[styles.container, { backgroundColor: currentColors.background }]}>
       {/* Поиск в iOS стиле с лупой */}
@@ -97,7 +187,7 @@ const HistoryScreen = ({ navigation }) => {
         </View>
         <TextInput
           style={[styles.searchInput, { color: currentColors.text }]}
-          placeholder="Поиск по ИГЭ или дате..."
+          placeholder="Поиск по ИГЭ, грунту или дате..."
           value={searchQuery}
           onChangeText={setSearchQuery}
           placeholderTextColor={currentColors.constantText}
@@ -109,42 +199,7 @@ const HistoryScreen = ({ navigation }) => {
       <FlatList
         data={filteredHistory}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <View style={[styles.historyItem, { 
-            backgroundColor: currentColors.inputBackground,
-            borderColor: currentColors.inputBorder 
-          }]}>
-            <Text style={[styles.date, { color: currentColors.text }]}>{item.date}</Text>
-            <View style={styles.resultRow}>
-              <View style={[styles.tag, { backgroundColor: currentColors.tag }]}>
-                <Text style={[styles.tagText, { color: currentColors.text }]}>{item.igE}</Text>
-              </View>
-              <View style={[styles.tag, { backgroundColor: currentColors.tag }]}>
-                <Text style={[styles.tagText, { color: currentColors.text }]}>df = {item.df}</Text>
-              </View>
-            </View>
-            <View style={styles.buttonRow}>
-              <TouchableOpacity
-                style={[styles.actionButton, { backgroundColor: currentColors.primaryButton }]}
-                onPress={() => handleView(item)}
-              >
-                <Text style={[styles.buttonText, { color: currentColors.text }]}>Посмотреть</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.actionButton, { backgroundColor: currentColors.exportButton }]}
-                onPress={() => handleExport(item)}
-              >
-                <Text style={[styles.buttonText, { color: currentColors.text }]}>Экспорт</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.actionButton, styles.deleteButton, { backgroundColor: currentColors.clearHistory }]}
-                onPress={() => handleDeleteItem(item.id)}
-              >
-                <Text style={[styles.buttonText, { color: currentColors.text }]}>Удалить</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        )}
+        renderItem={renderHistoryItem}
         ListEmptyComponent={
           <Text style={[styles.noResults, { color: currentColors.noResults }]}>
             {history.length === 0 ? 'История расчётов пуста' : 'Больше результатов не найдено'}
@@ -199,15 +254,26 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   date: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: 'bold',
-    marginBottom: 10,
+    marginBottom: 8,
     fontFamily: 'IBM-Plex-Mono-Bold',
+  },
+  soilName: {
+    fontSize: 13,
+    marginBottom: 5,
+    fontFamily: 'IBM-Plex-Mono-Regular',
+  },
+  layersInfo: {
+    fontSize: 12,
+    marginBottom: 8,
+    fontFamily: 'IBM-Plex-Mono-Regular',
+    fontStyle: 'italic',
   },
   resultRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 10,
+    marginBottom: 8,
   },
   tag: {
     paddingHorizontal: 8,
@@ -215,8 +281,19 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   tagText: {
-    fontSize: 14,
+    fontSize: 12,
     fontFamily: 'IBM-Plex-Mono-Regular',
+  },
+  riskTag: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+    alignSelf: 'flex-start',
+    marginBottom: 10,
+  },
+  riskText: {
+    fontSize: 11,
+    fontFamily: 'IBM-Plex-Mono-Bold',
   },
   buttonRow: {
     flexDirection: 'row',
@@ -224,7 +301,7 @@ const styles = StyleSheet.create({
   },
   actionButton: {
     paddingVertical: 8,
-    paddingHorizontal: 12,
+    paddingHorizontal: 8,
     borderRadius: 4,
     flex: 1,
     marginHorizontal: 2,
@@ -234,7 +311,7 @@ const styles = StyleSheet.create({
     // Стиль уже задан через backgroundColor
   },
   buttonText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: 'bold',
     fontFamily: 'IBM-Plex-Mono-Bold',
     textAlign: 'center',
