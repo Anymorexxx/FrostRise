@@ -57,7 +57,7 @@ const INITIAL_DATA = {
   constants: [
     { id: 1, name: 'L', value: 334, unit: 'кДж/кг', description: 'Теплота фазового перехода воды' },
     { id: 2, name: 'theta_mp', value: 12.51, unit: '°C', description: 'Абсолютная средняя температура на поверхности' },
-    { id: 3, name: 'tau_f', value: 3624, unit: 'ч', description: 'Продолжительность периода промерзания' },
+    { id: 3, name: 'tau_f', value: 3624, unit: 'ч', description: 'Продолжительность периода отрицательных температур' },
     { id: 4, name: 'kf', value: 0.10, unit: '', description: 'Коэффициент из таблицы Е.3' },
     { id: 5, name: 'g', value: 9.81, unit: 'м/с²', description: 'Ускорение свободного падения' }
   ],

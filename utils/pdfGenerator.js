@@ -253,7 +253,7 @@ export const generatePDF = async (calculationData, chartImageBase64 = '') => {
             <table>
               <tr><th>Параметр</th><th>Значение</th></tr>
               <tr><td>Средняя температура (θ<sub>mp</sub>)</td><td>${inputData.tcp || inputData.climateData?.tcp || 'Не указано'} °C</td></tr>
-              <tr><td>Продолжительность промерзания (τ<sub>f</sub>)</td><td>${inputData.tf || inputData.climateData?.tf || 'Не указано'} час</td></tr>
+              <tr><td>Продолжительность периода отрицательных температур (τ<sub>f</sub>)</td><td>${inputData.tf || inputData.climateData?.tf || 'Не указано'} час</td></tr>
             </table>
           </div>
 

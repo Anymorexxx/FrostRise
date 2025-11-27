@@ -80,7 +80,7 @@ const CalculationFormulas = ({ calculationDetails }) => {
           • θ_mp (средняя температура): {parameters.theta_mp || 12.51} °C
         </Text>
         <Text style={[styles.parameter, { color: currentColors.text }]}>
-          • τ_f (продолжительность промерзания): {parameters.tau_f || 3624} ч
+          • τ_f (Продолжительность периода отрицательных температур): {parameters.tau_f || 3624} ч
         </Text>
         <Text style={[styles.parameter, { color: currentColors.text }]}>
           • L (теплота фазового перехода): {parameters.L || 334} кДж/кг

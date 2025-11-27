@@ -206,7 +206,7 @@ const InputScreen = ({ navigation }) => {
       { value: ip, name: 'Число пластичности' },
       { value: t0, name: 't0' },
       { value: tcp, name: 'Средняя температура' },
-      { value: tf, name: 'Продолжительность промерзания' }
+      { value: tf, name: 'Продолжительность периода отрицательных температур' }
     ];
 
     for (let field of soilNumericFields) {
