@@ -90,30 +90,92 @@ export const forceReinitializeDatabase = async () => {
 export const initDatabase = async () => {
   try {
     console.log('🔄 Инициализация базы данных FrostRise...');
+    await new Promise(resolve => setTimeout(resolve, 1000));
     
-    // ВСЕГДА обновляем базу данных при инициализации (для тестирования)
-    await forceReinitializeDatabase();
+    // Шаг 1: Проверка AsyncStorage
+    console.log('📌 Шаг 1: Проверка AsyncStorage...');
+    try {
+      const testKey = '@test_' + Date.now();
+      await AsyncStorage.setItem(testKey, 'test');
+      const testValue = await AsyncStorage.getItem(testKey);
+      console.log('✅ AsyncStorage работает, тест:', testValue);
+      await AsyncStorage.removeItem(testKey);
+    } catch (storageError) {
+      console.error('❌ AsyncStorage НЕ РАБОТАЕТ:', storageError);
+      return false;
+    }
+
+    // Шаг 2: Всегда проверяем и инициализируем данные
+    console.log('📌 Шаг 2: Проверка существующих грунтов...');
     
-    console.log('✅ База данных успешно инициализирована с обновленными данными');
+    try {
+      const existingSoils = await AsyncStorage.getItem(DB_KEYS.SOILS);
+      const soilsCount = existingSoils ? JSON.parse(existingSoils).length : 0;
+      console.log('📊 Существующие грунты:', soilsCount);
+
+      if (!existingSoils || soilsCount === 0) {
+        console.log('📌 Шаг 3: База пуста, начинаем заполнение...');
+        await seedDatabase();
+        console.log('✅ База данных успешно заполнена');
+      } else {
+        console.log('✅ База данных уже существует');
+      }
+    } catch (dataError) {
+      console.error('❌ Ошибка проверки данных, перезапись:', dataError);
+      await seedDatabase();
+    }
+
+    // Шаг 3: Финальная проверка
+    console.log('📌 Шаг 4: Финальная проверка...');
+    const verifySoils = await AsyncStorage.getItem(DB_KEYS.SOILS);
+    const finalCount = verifySoils ? JSON.parse(verifySoils).length : 0;
+    console.log('📊 Итого грунтов в БД:', finalCount);
+
+    if (finalCount === 0) {
+      console.error('❌ КРИТИЧЕСКАЯ ОШИБКА: База данных пуста после инициализации!');
+      return false;
+    }
+
+    console.log('✅ Инициализация базы данных завершена успешно');
     return true;
+    
   } catch (error) {
-    console.error('❌ Ошибка инициализации базы данных:', error);
+    console.error('❌ КРИТИЧЕСКАЯ ОШИБКА В initDatabase:', error);
+    console.error('❌ Stack:', error.stack);
     return false;
   }
 };
 
+// Улучшенная функция seedDatabase с проверками
 const seedDatabase = async () => {
   try {
-    // Сохраняем все данные
+    console.log('📝 Заполнение базы данных...');
+    
+    // Проверяем данные перед сохранением
+    if (!INITIAL_DATA.soils || INITIAL_DATA.soils.length === 0) {
+      throw new Error('INITIAL_DATA.soils is empty or undefined');
+    }
+    
+    console.log('📊 Сохранение грунтов:', INITIAL_DATA.soils.length);
     await AsyncStorage.setItem(DB_KEYS.SOILS, JSON.stringify(INITIAL_DATA.soils));
+    
+    console.log('📊 Сохранение материалов:', INITIAL_DATA.materials.length);
     await AsyncStorage.setItem(DB_KEYS.MATERIALS, JSON.stringify(INITIAL_DATA.materials));
+    
+    console.log('📊 Сохранение коэффициентов:', INITIAL_DATA.coefficients.length);
     await AsyncStorage.setItem(DB_KEYS.COEFFICIENTS, JSON.stringify(INITIAL_DATA.coefficients));
+    
+    console.log('📊 Сохранение констант:', INITIAL_DATA.constants.length);
     await AsyncStorage.setItem(DB_KEYS.CONSTANTS, JSON.stringify(INITIAL_DATA.constants));
+    
+    console.log('📊 Сохранение истории');
     await AsyncStorage.setItem(DB_KEYS.HISTORY, JSON.stringify(INITIAL_DATA.history));
     
+    console.log('✅ База данных успешно заполнена');
     return true;
   } catch (error) {
     console.error('❌ Ошибка заполнения базы данных:', error);
+    console.error('❌ Stack:', error.stack);
     return false;
   }
 };
@@ -355,6 +417,27 @@ export const DatabaseService = {
       console.error('❌ Ошибка получения константы по имени:', error);
       return null;
     }
+  }
+};
+
+export const checkDatabaseHealth = async () => {
+  try {
+    const soils = await AsyncStorage.getItem(DB_KEYS.SOILS);
+    const materials = await AsyncStorage.getItem(DB_KEYS.MATERIALS);
+    
+    const soilsCount = soils ? JSON.parse(soils).length : 0;
+    const materialsCount = materials ? JSON.parse(materials).length : 0;
+    
+    console.log('🏥 Проверка здоровья БД:', { soilsCount, materialsCount });
+    
+    return {
+      healthy: soilsCount > 0 && materialsCount > 0,
+      soilsCount,
+      materialsCount
+    };
+  } catch (error) {
+    console.error('❌ Ошибка проверки здоровья БД:', error);
+    return { healthy: false, soilsCount: 0, materialsCount: 0 };
   }
 };
 

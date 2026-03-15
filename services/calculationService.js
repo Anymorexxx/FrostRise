@@ -1,4 +1,3 @@
-// services/calculationService.js
 import { DatabaseService } from '../database/database';
 
 export const CalculationService = {

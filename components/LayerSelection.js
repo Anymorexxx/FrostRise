@@ -6,24 +6,26 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  ActionSheetIOS,
   Alert,
+  Platform,
+  Modal,
+  ScrollView,
 } from 'react-native';
 import { ThemeContext } from '../context/ThemeContext';
 import colors from '../constants/colors.js';
 import { DatabaseService } from '../database/database';
 
-const LayerSelection = ({ 
-  layer, 
-  onUpdate, 
-  soilLambdaF, 
-  soilCF 
+const LayerSelection = ({
+  layer,
+  onUpdate,
+  soilLambdaF,
+  soilCF
 }) => {
   const { theme } = useContext(ThemeContext);
   const currentColors = colors[theme] || colors.light;
-  
   const [materials, setMaterials] = useState([]);
   const [selectedMaterial, setSelectedMaterial] = useState(null);
+  const [showMaterialModal, setShowMaterialModal] = useState(false);
 
   // Загрузка материалов при первом рендере
   useEffect(() => {
@@ -44,36 +46,16 @@ const LayerSelection = ({
       Alert.alert('Ошибка', 'Данные материалов не загружены');
       return;
     }
+    setShowMaterialModal(true);
+  };
 
-    const options = ['Отмена', 'Ручной ввод', ...materials.map(material => material.material_type)];
-    
-    ActionSheetIOS.showActionSheetWithOptions(
-      {
-        options: options,
-        cancelButtonIndex: 0,
-        title: 'Выберите материал слоя',
-        message: 'Выберите из базы данных или введите вручную',
-      },
-      (buttonIndex) => {
-        if (buttonIndex === 0) return; // Отмена
-        if (buttonIndex === 1) {
-          handleManualInput();
-          return;
-        }
-        
-        const selectedIndex = buttonIndex - 2;
-        const selected = materials[selectedIndex];
-        if (selected) {
-          handleMaterialSelection(selected);
-        }
-      }
-    );
+  const handleMaterialSelect = (material) => {
+    setShowMaterialModal(false);
+    handleMaterialSelection(material);
   };
 
   const handleMaterialSelection = (material) => {
     setSelectedMaterial(material);
-    
-    // Автоматически заполняем параметры из выбранного материала
     onUpdate(layer.id, {
       name: material.material_type,
       density: material.rho_d?.toString() || '',
@@ -98,13 +80,77 @@ const LayerSelection = ({
     onUpdate(layer.id, { [field]: value });
   };
 
+  // Модальное окно выбора материала
+  const renderMaterialModal = () => {
+    if (!showMaterialModal) return null;
+    
+    return (
+      <Modal
+        visible={showMaterialModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowMaterialModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: currentColors.background }]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: currentColors.text }]}>
+                Выберите материал слоя
+              </Text>
+              <Text style={[styles.modalSubtitle, { color: currentColors.constantText }]}>
+                Выберите из базы данных или введите вручную
+              </Text>
+            </View>
+            
+            <ScrollView style={styles.materialList}>
+              {materials.map((material) => (
+                <TouchableOpacity
+                  key={material.id}
+                  style={[
+                    styles.materialItem,
+                    { 
+                      borderColor: currentColors.inputBorder,
+                      backgroundColor: currentColors.inputBackground 
+                    }
+                  ]}
+                  onPress={() => handleMaterialSelect(material)}
+                >
+                  <Text style={[styles.materialName, { color: currentColors.primary }]}>
+                    {material.material_type}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+            
+            <TouchableOpacity
+              style={[styles.manualInputButton, { backgroundColor: currentColors.inputBackground }]}
+              onPress={handleManualInput}
+            >
+              <Text style={[styles.manualInputText, { color: currentColors.text }]}>
+                ✏️ Ручной ввод
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[styles.modalCancelButton, { backgroundColor: currentColors.inputBackground }]}
+              onPress={() => setShowMaterialModal(false)}
+            >
+              <Text style={[styles.modalCancelText, { color: currentColors.text }]}>
+                Отмена
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    );
+  };
+
   return (
     <View style={[styles.layerContainer, { borderColor: currentColors.inputBorder }]}>
-      {/* Заголовок слоя с выбором материала */}
-      <TouchableOpacity 
-        style={[styles.layerHeader, { 
-          backgroundColor: currentColors.inputBackground 
-        }]}
+      {renderMaterialModal()}
+      
+      <TouchableOpacity
+        style={[styles.layerHeader, { backgroundColor: currentColors.inputBackground }]}
         onPress={showMaterialSelection}
       >
         <Text style={[styles.layerTitle, { color: currentColors.text }]}>
@@ -115,7 +161,6 @@ const LayerSelection = ({
         </Text>
       </TouchableOpacity>
 
-      {/* Поля ввода */}
       <View style={styles.inputRow}>
         <Text style={[styles.inputLabel, { color: currentColors.inputText }]}>Толщина (м)</Text>
         <TextInput
@@ -244,6 +289,82 @@ const styles = StyleSheet.create({
     fontFamily: 'IBM-Plex-Mono-Regular',
     fontSize: 12,
     flex: 2,
+  },
+  // Модальное окно
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: '90%',
+    maxHeight: '80%',
+    borderRadius: 12,
+    padding: 20,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 5,
+      },
+    }),
+  },
+  modalHeader: {
+    marginBottom: 15,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.1)',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontFamily: 'IBM-Plex-Mono-Bold',
+    fontWeight: 'bold',
+    marginBottom: 5,
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    fontFamily: 'IBM-Plex-Mono-Regular',
+  },
+  materialList: {
+    maxHeight: 400,
+    marginBottom: 15,
+  },
+  materialItem: {
+    padding: 15,
+    borderWidth: 1,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  materialName: {
+    fontSize: 14,
+    fontFamily: 'IBM-Plex-Mono-Bold',
+    fontWeight: 'bold',
+  },
+  manualInputButton: {
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  manualInputText: {
+    fontSize: 16,
+    fontFamily: 'IBM-Plex-Mono-Regular',
+    fontWeight: '600',
+  },
+  modalCancelButton: {
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  modalCancelText: {
+    fontSize: 16,
+    fontFamily: 'IBM-Plex-Mono-Regular',
+    fontWeight: '600',
   },
 });
 

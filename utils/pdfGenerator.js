@@ -1,4 +1,3 @@
-// utils/pdfGenerator.js
 import * as Print from 'expo-print';
 import * as FileSystem from 'expo-file-system';
 import { shareAsync } from 'expo-sharing';

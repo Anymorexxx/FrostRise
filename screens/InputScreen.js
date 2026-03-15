@@ -11,6 +11,7 @@ import {
   Platform,
   ActionSheetIOS,
   Switch,
+  Modal,
 } from 'react-native';
 import { ThemeContext } from '../context/ThemeContext';
 import colors from '../constants/colors.js';
@@ -20,7 +21,7 @@ import LayerSelection from '../components/LayerSelection';
 const InputScreen = ({ navigation }) => {
   const { theme } = useContext(ThemeContext);
   const currentColors = colors[theme] || colors.light;
-
+  
   const [selectedIGE, setSelectedIGE] = useState('');
   const [selectedIGEName, setSelectedIGEName] = useState('');
   const [lambdaF, setLambdaF] = useState('');
@@ -38,8 +39,8 @@ const InputScreen = ({ navigation }) => {
   
   // Расчетные слои (5 слоев)
   const [layers, setLayers] = useState([
-    { 
-      id: 1, 
+    {
+      id: 1,
       name: 'Слой 1',
       thickness: '',
       density: '',
@@ -47,8 +48,8 @@ const InputScreen = ({ navigation }) => {
       lambdaF: '',
       cF: ''
     },
-    { 
-      id: 2, 
+    {
+      id: 2,
       name: 'Слой 2',
       thickness: '',
       density: '',
@@ -56,8 +57,8 @@ const InputScreen = ({ navigation }) => {
       lambdaF: '',
       cF: ''
     },
-    { 
-      id: 3, 
+    {
+      id: 3,
       name: 'Слой 3',
       thickness: '',
       density: '',
@@ -65,8 +66,8 @@ const InputScreen = ({ navigation }) => {
       lambdaF: '',
       cF: ''
     },
-    { 
-      id: 4, 
+    {
+      id: 4,
       name: 'Слой 4',
       thickness: '',
       density: '',
@@ -74,8 +75,8 @@ const InputScreen = ({ navigation }) => {
       lambdaF: '',
       cF: ''
     },
-    { 
-      id: 5, 
+    {
+      id: 5,
       name: 'Слой 5',
       thickness: '',
       density: '',
@@ -84,13 +85,15 @@ const InputScreen = ({ navigation }) => {
       cF: ''
     }
   ]);
-
+  
   // Утеплитель (пока выключен)
   const [insulationEnabled, setInsulationEnabled] = useState(false);
-
   const [soils, setSoils] = useState([]);
   const [loading, setLoading] = useState(true);
-
+  
+  // Состояние для модального окна выбора грунта
+  const [showSoilModal, setShowSoilModal] = useState(false);
+  
   // Загрузка данных грунтов из БД при монтировании
   useEffect(() => {
     const loadData = async () => {
@@ -98,7 +101,7 @@ const InputScreen = ({ navigation }) => {
     };
     loadData();
   }, []);
-
+  
   const loadSoilsFromDB = async () => {
     try {
       console.log('Loading soils from DB...');
@@ -112,40 +115,28 @@ const InputScreen = ({ navigation }) => {
       setLoading(false);
     }
   };
-
+  
+  const getFallbackSoils = () => {
+    return [
+      { code: '11_1', name: 'Песок гравелистый', lambda_f: 2.1, c_f: 2100, t0: 0 },
+      { code: '11_2', name: 'Песок мелкий', lambda_f: 1.8, c_f: 1800, t0: 0.2 },
+      { code: '12_1', name: 'Супесь', lambda_f: 1.5, c_f: 1700, t0: 0.4 },
+    ];
+  };
+  
   const showIGESelection = () => {
     if (!soils || soils.length === 0) {
       Alert.alert('Ошибка', 'Данные грунтов не загружены');
       return;
     }
-
-    try {
-      const options = ['Отмена', ...soils.map(soil => `${soil.code} - ${soil.name}`)];
-      
-      ActionSheetIOS.showActionSheetWithOptions(
-        {
-          options: options,
-          cancelButtonIndex: 0,
-          title: 'Выберите ИГЭ',
-          message: 'Выберите тип грунта из списка',
-        },
-        (buttonIndex) => {
-          if (buttonIndex === 0) {
-            return;
-          }
-          const selectedIndex = buttonIndex - 1;
-          const selected = soils[selectedIndex];
-          if (selected) {
-            handleSoilSelection(selected);
-          }
-        }
-      );
-    } catch (error) {
-      console.error('Error showing soil selection:', error);
-      Alert.alert('Ошибка', 'Не удалось открыть выбор грунта');
-    }
+    setShowSoilModal(true);
   };
-
+  
+  const handleSoilSelect = (selected) => {
+    setShowSoilModal(false);
+    handleSoilSelection(selected);
+  };
+  
   const handleSoilSelection = (selected) => {
     if (!selected) return;
     
@@ -162,42 +153,42 @@ const InputScreen = ({ navigation }) => {
     setWp(selected.wp?.toString() || '0.18');
     setIp(selected.ip?.toString() || '0.16');
   };
-
+  
   const updateLayer = (layerId, updates) => {
-    setLayers(prevLayers => 
-      prevLayers.map(layer => 
+    setLayers(prevLayers =>
+      prevLayers.map(layer =>
         layer.id === layerId ? { ...layer, ...updates } : layer
       )
     );
   };
-
+  
   const isFormValid = () => {
     // Проверяем выбор ИГЭ
     if (!selectedIGE) return false;
-
+    
     // Проверяем обязательные поля грунта
     const soilFields = [pd, w, wp, ip, t0];
     if (!soilFields.every(field => field && field.toString().trim() !== '')) {
       return false;
     }
-
+    
     // Проверяем климатические параметры
     if (!tcp || !tf) return false;
-
+    
     // Проверяем, что хотя бы один слой заполнен
     const hasValidLayer = layers.some(layer => 
       layer.thickness && layer.density && layer.moisture
     );
-
+    
     return hasValidLayer;
   };
-
+  
   const handleCalculate = () => {
     if (!isFormValid()) {
       Alert.alert('Ошибка', 'Заполните все обязательные поля и хотя бы один расчетный слой');
       return;
     }
-
+    
     // Валидация числовых значений грунта
     const soilNumericFields = [
       { value: pd, name: 'Плотность сухого грунта' },
@@ -208,7 +199,7 @@ const InputScreen = ({ navigation }) => {
       { value: tcp, name: 'Средняя температура' },
       { value: tf, name: 'Продолжительность периода отрицательных температур' }
     ];
-
+    
     for (let field of soilNumericFields) {
       const value = parseFloat(field.value);
       if (isNaN(value)) {
@@ -220,13 +211,13 @@ const InputScreen = ({ navigation }) => {
         return;
       }
     }
-
+    
     // Валидация влажности
     if (parseFloat(w) > 1 || parseFloat(wp) > 1) {
       Alert.alert('Ошибка', 'Влажность должна быть в диапазоне 0-1');
       return;
     }
-
+    
     // Валидация расчетных слоев
     for (let layer of layers) {
       if (layer.thickness || layer.density || layer.moisture) {
@@ -237,7 +228,7 @@ const InputScreen = ({ navigation }) => {
           { value: layer.lambdaF, name: `λf слоя ${layer.id}` },
           { value: layer.cF, name: `Cf слоя ${layer.id}` }
         ];
-
+        
         for (let field of layerFields) {
           // Проверяем только заполненные поля
           if (field.value && field.value.toString().trim() !== '') {
@@ -252,14 +243,14 @@ const InputScreen = ({ navigation }) => {
             }
           }
         }
-
+        
         if (parseFloat(layer.moisture) > 1) {
           Alert.alert('Ошибка', `Влажность слоя ${layer.id} должна быть в диапазоне 0-1`);
           return;
         }
       }
     }
-
+    
     // Фильтруем только заполненные слои и устанавливаем значения по умолчанию для пустых полей
     const filledLayers = layers
       .filter(layer => layer.thickness && layer.density && layer.moisture)
@@ -269,12 +260,12 @@ const InputScreen = ({ navigation }) => {
         lambdaF: layer.lambdaF || lambdaF,
         cF: layer.cF || cF
       }));
-
+    
     if (filledLayers.length === 0) {
       Alert.alert('Ошибка', 'Заполните хотя бы один расчетный слой');
       return;
     }
-
+    
     // Передача данных на экран результатов
     navigation.navigate('Result', {
       inputData: {
@@ -298,7 +289,7 @@ const InputScreen = ({ navigation }) => {
       },
     });
   };
-
+  
   const clearForm = () => {
     setSelectedIGE('');
     setSelectedIGEName('');
@@ -321,7 +312,69 @@ const InputScreen = ({ navigation }) => {
     ]);
     setInsulationEnabled(false);
   };
-
+  
+  // Рендер модального окна выбора грунта
+  const renderSoilModal = () => {
+    if (!showSoilModal) return null;
+    
+    return (
+      <Modal
+        visible={showSoilModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowSoilModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { backgroundColor: currentColors.background }]}>
+            <View style={styles.modalHeader}>
+              <Text style={[styles.modalTitle, { color: currentColors.text }]}>
+                Выберите ИГЭ
+              </Text>
+              <Text style={[styles.modalSubtitle, { color: currentColors.constantText }]}>
+                Выберите тип грунта из списка
+              </Text>
+            </View>
+            
+            <ScrollView style={styles.soilList}>
+              {soils.map((soil) => (
+                <TouchableOpacity
+                  key={soil.code}
+                  style={[
+                    styles.soilItem,
+                    { 
+                      borderColor: currentColors.inputBorder,
+                      backgroundColor: currentColors.inputBackground 
+                    }
+                  ]}
+                  onPress={() => handleSoilSelect(soil)}
+                >
+                  <Text style={[styles.soilCode, { color: currentColors.primary }]}>
+                    {soil.code}
+                  </Text>
+                  <Text style={[styles.soilName, { color: currentColors.text }]}>
+                    {soil.name}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+            
+            <TouchableOpacity
+              style={[
+                styles.modalCancelButton,
+                { backgroundColor: currentColors.inputBackground }
+              ]}
+              onPress={() => setShowSoilModal(false)}
+            >
+              <Text style={[styles.modalCancelText, { color: currentColors.text }]}>
+                Отмена
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    );
+  };
+  
   if (loading) {
     return (
       <View style={[styles.container, { backgroundColor: currentColors.background }]}>
@@ -333,19 +386,22 @@ const InputScreen = ({ navigation }) => {
       </View>
     );
   }
-
+  
   return (
-    <ScrollView 
+    <ScrollView
       style={[styles.container, { backgroundColor: currentColors.background }]}
       contentContainerStyle={styles.contentContainer}
       showsVerticalScrollIndicator={false}
     >
+      {/* Модальное окно выбора грунта */}
+      {renderSoilModal()}
+      
       {/* Кнопка выбора ИГЭ */}
       <View style={styles.igeSelectionContainer}>
-        <TouchableOpacity 
-          style={[styles.igeSelectionButton, { 
+        <TouchableOpacity
+          style={[styles.igeSelectionButton, {
             backgroundColor: currentColors.inputBackground,
-            borderColor: currentColors.inputBorder 
+            borderColor: currentColors.inputBorder
           }]}
           onPress={showIGESelection}
         >
@@ -355,7 +411,7 @@ const InputScreen = ({ navigation }) => {
           <Text style={[styles.igeSelectionArrow, { color: currentColors.constantText }]}>▼</Text>
         </TouchableOpacity>
       </View>
-
+      
       {/* Характеристики грунта (только для чтения) */}
       {selectedIGE ? (
         <View style={styles.soilPropertiesContainer}>
@@ -364,58 +420,58 @@ const InputScreen = ({ navigation }) => {
           </Text>
           
           <View style={styles.constantRow}>
-            <Text style={[styles.constantLabel, { color: currentColors.constantText }]}>λf:</Text>
+            <Text style={[styles.constantLabel, { color: currentColors.constantText }]}>λf: </Text>
             <View style={styles.constantValueContainer}>
-              <Text style={[styles.constantValue, { color: currentColors.constantText }]}>{lambdaF}</Text>
-              <Text style={[styles.constantUnit, { color: currentColors.constantText }]}>Вт/(м·°C)</Text>
+              <Text style={[styles.constantValue, { color: currentColors.constantText }]}>{lambdaF} </Text>
+              <Text style={[styles.constantUnit, { color: currentColors.constantText }]}>Вт/(м·°C) </Text>
             </View>
           </View>
-
+          
           <View style={styles.constantRow}>
-            <Text style={[styles.constantLabel, { color: currentColors.constantText }]}>Cf:</Text>
+            <Text style={[styles.constantLabel, { color: currentColors.constantText }]}>Cf: </Text>
             <View style={styles.constantValueContainer}>
-              <Text style={[styles.constantValue, { color: currentColors.constantText }]}>{cF}</Text>
-              <Text style={[styles.constantUnit, { color: currentColors.constantText }]}>кДж/(м³·°C)</Text>
+              <Text style={[styles.constantValue, { color: currentColors.constantText }]}>{cF} </Text>
+              <Text style={[styles.constantUnit, { color: currentColors.constantText }]}>кДж/(м³·°C) </Text>
             </View>
           </View>
-
+          
           <View style={styles.constantRow}>
-            <Text style={[styles.constantLabel, { color: currentColors.constantText }]}>t0:</Text>
+            <Text style={[styles.constantLabel, { color: currentColors.constantText }]}>t0: </Text>
             <View style={styles.constantValueContainer}>
-              <Text style={[styles.constantValue, { color: currentColors.constantText }]}>{t0}</Text>
-              <Text style={[styles.constantUnit, { color: currentColors.constantText }]}>°C</Text>
+              <Text style={[styles.constantValue, { color: currentColors.constantText }]}>{t0} </Text>
+              <Text style={[styles.constantUnit, { color: currentColors.constantText }]}>°C </Text>
             </View>
           </View>
-
+          
           <View style={styles.constantRow}>
-            <Text style={[styles.constantLabel, { color: currentColors.constantText }]}>ρd:</Text>
+            <Text style={[styles.constantLabel, { color: currentColors.constantText }]}>ρd: </Text>
             <View style={styles.constantValueContainer}>
-              <Text style={[styles.constantValue, { color: currentColors.constantText }]}>{pd}</Text>
-              <Text style={[styles.constantUnit, { color: currentColors.constantText }]}>кг/м³</Text>
+              <Text style={[styles.constantValue, { color: currentColors.constantText }]}>{pd} </Text>
+              <Text style={[styles.constantUnit, { color: currentColors.constantText }]}>кг/м³ </Text>
             </View>
           </View>
-
+          
           <View style={styles.constantRow}>
-            <Text style={[styles.constantLabel, { color: currentColors.constantText }]}>W:</Text>
+            <Text style={[styles.constantLabel, { color: currentColors.constantText }]}>W: </Text>
             <View style={styles.constantValueContainer}>
-              <Text style={[styles.constantValue, { color: currentColors.constantText }]}>{w}</Text>
-              <Text style={[styles.constantUnit, { color: currentColors.constantText }]}>д.е.</Text>
+              <Text style={[styles.constantValue, { color: currentColors.constantText }]}>{w} </Text>
+              <Text style={[styles.constantUnit, { color: currentColors.constantText }]}>д.е. </Text>
             </View>
           </View>
-
+          
           <View style={styles.constantRow}>
-            <Text style={[styles.constantLabel, { color: currentColors.constantText }]}>Wp:</Text>
+            <Text style={[styles.constantLabel, { color: currentColors.constantText }]}>Wp: </Text>
             <View style={styles.constantValueContainer}>
-              <Text style={[styles.constantValue, { color: currentColors.constantText }]}>{wp}</Text>
-              <Text style={[styles.constantUnit, { color: currentColors.constantText }]}>д.е.</Text>
+              <Text style={[styles.constantValue, { color: currentColors.constantText }]}>{wp} </Text>
+              <Text style={[styles.constantUnit, { color: currentColors.constantText }]}>д.е. </Text>
             </View>
           </View>
-
+          
           <View style={styles.constantRow}>
-            <Text style={[styles.constantLabel, { color: currentColors.constantText }]}>Jp:</Text>
+            <Text style={[styles.constantLabel, { color: currentColors.constantText }]}>Jp: </Text>
             <View style={styles.constantValueContainer}>
-              <Text style={[styles.constantValue, { color: currentColors.constantText }]}>{ip}</Text>
-              <Text style={[styles.constantUnit, { color: currentColors.constantText }]}>д.е.</Text>
+              <Text style={[styles.constantValue, { color: currentColors.constantText }]}>{ip} </Text>
+              <Text style={[styles.constantUnit, { color: currentColors.constantText }]}>д.е. </Text>
             </View>
           </View>
         </View>
@@ -426,7 +482,7 @@ const InputScreen = ({ navigation }) => {
           </Text>
         </View>
       )}
-
+      
       {/* Расчетные слои с новым компонентом выбора */}
       <View style={styles.sectionHeader}>
         <Text style={[styles.sectionTitle, { color: currentColors.sectionTitle }]}>
@@ -436,7 +492,7 @@ const InputScreen = ({ navigation }) => {
           Нажмите на название слоя для выбора материала из БД или ручного ввода
         </Text>
       </View>
-
+      
       {layers.map((layer) => (
         <LayerSelection
           key={layer.id}
@@ -446,7 +502,7 @@ const InputScreen = ({ navigation }) => {
           soilCF={cF}
         />
       ))}
-
+      
       {/* Утеплитель (выключен) */}
       <View style={styles.sectionHeader}>
         <Text style={[styles.sectionTitle, { color: currentColors.sectionTitle }]}>
@@ -468,16 +524,16 @@ const InputScreen = ({ navigation }) => {
       <Text style={[styles.insulationNote, { color: currentColors.constantText }]}>
         Модуль утеплителя будет доступен в следующем обновлении
       </Text>
-
+      
       {/* Климатические параметры */}
       <View style={styles.sectionHeader}>
         <Text style={[styles.sectionTitle, { color: currentColors.sectionTitle }]}>
           Климатические параметры
         </Text>
       </View>
-
+      
       <View style={styles.inputRow}>
-        <Text style={[styles.inputLabel, { color: currentColors.inputText }]}>Средняя температура Tcp (°C)</Text>
+        <Text style={[styles.inputLabel, { color: currentColors.inputText }]}>Средняя температура Tcp (°C) </Text>
         <TextInput
           style={[styles.inputField, { 
             backgroundColor: currentColors.inputBackground,
@@ -491,9 +547,9 @@ const InputScreen = ({ navigation }) => {
           placeholderTextColor={currentColors.inputText}
         />
       </View>
-
+      
       <View style={styles.inputRow}>
-        <Text style={[styles.inputLabel, { color: currentColors.inputText }]}>Продолжительность промерзания Tf (час)</Text>
+        <Text style={[styles.inputLabel, { color: currentColors.inputText }]}>Продолжительность промерзания Tf (час) </Text>
         <TextInput
           style={[styles.inputField, { 
             backgroundColor: currentColors.inputBackground,
@@ -507,7 +563,7 @@ const InputScreen = ({ navigation }) => {
           placeholderTextColor={currentColors.inputText}
         />
       </View>
-
+      
       {/* Кнопки действий */}
       <View style={styles.buttonContainer}>
         <TouchableOpacity
@@ -522,7 +578,7 @@ const InputScreen = ({ navigation }) => {
         >
           <Text style={[styles.buttonText, { color: currentColors.text }]}>Рассчитать Hₙ</Text>
         </TouchableOpacity>
-
+        
         <TouchableOpacity
           style={[styles.clearButton, { 
             backgroundColor: currentColors.inputBackground,
@@ -533,7 +589,7 @@ const InputScreen = ({ navigation }) => {
           <Text style={[styles.clearButtonText, { color: currentColors.text }]}>Очистить форму</Text>
         </TouchableOpacity>
       </View>
-
+      
       {/* Ссылка на историю */}
       <TouchableOpacity onPress={() => navigation.navigate('History')}>
         <Text style={[styles.historyLink, { color: currentColors.historyLink }]}>История расчётов</Text>
@@ -588,6 +644,9 @@ const styles = StyleSheet.create({
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.1,
         shadowRadius: 2,
+      },
+      android: {
+        elevation: 2,
       },
     }),
   },
@@ -680,6 +739,9 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.1,
         shadowRadius: 2,
       },
+      android: {
+        elevation: 1,
+      },
     }),
   },
   insulationContainer: {
@@ -714,6 +776,9 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.2,
         shadowRadius: 4,
       },
+      android: {
+        elevation: 3,
+      },
     }),
   },
   clearButton: {
@@ -737,6 +802,80 @@ const styles = StyleSheet.create({
     textDecorationLine: 'underline',
     fontFamily: 'IBM-Plex-Mono-Regular',
     fontSize: 16,
+  },
+  // Стили для модального окна
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    width: '90%',
+    maxHeight: '80%',
+    borderRadius: 12,
+    padding: 20,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 4,
+      },
+      android: {
+        elevation: 5,
+      },
+    }),
+  },
+  modalHeader: {
+    marginBottom: 15,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.1)',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontFamily: 'IBM-Plex-Mono-Bold',
+    fontWeight: 'bold',
+    marginBottom: 5,
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    fontFamily: 'IBM-Plex-Mono-Regular',
+  },
+  soilList: {
+    maxHeight: 400,
+    marginBottom: 15,
+  },
+  soilItem: {
+    padding: 15,
+    borderWidth: 1,
+    borderRadius: 8,
+    marginBottom: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  soilCode: {
+    fontSize: 14,
+    fontFamily: 'IBM-Plex-Mono-Bold',
+    fontWeight: 'bold',
+    marginRight: 10,
+    minWidth: 60,
+  },
+  soilName: {
+    fontSize: 14,
+    fontFamily: 'IBM-Plex-Mono-Regular',
+    flex: 1,
+  },
+  modalCancelButton: {
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  modalCancelText: {
+    fontSize: 16,
+    fontFamily: 'IBM-Plex-Mono-Regular',
+    fontWeight: '600',
   },
 });
 

@@ -1,4 +1,3 @@
-// App.js
 import React, { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
@@ -7,8 +6,9 @@ import { View, ActivityIndicator, Text } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import colors from './constants/colors';
-import { initDatabase } from './database/database';
+import { initDatabase, checkDatabaseHealth } from './database/database';
 import { LogBox } from 'react-native';
+import { ActionSheetProvider } from '@expo/react-native-action-sheet';
 
 LogBox.ignoreLogs(['Remote debugger']);
 
@@ -32,7 +32,7 @@ const Stack = createStackNavigator();
 function ThemedNavigator() {
   const { theme } = useTheme();
   const currentColors = colors[theme] || colors.light;
-
+  
   return (
     <Stack.Navigator
       initialRouteName="Home"
@@ -65,42 +65,61 @@ function AppLoader({ children }) {
   const [loadingProgress, setLoadingProgress] = useState('Загрузка шрифтов...');
 
   useEffect(() => {
-  async function initializeApp() {
-    try {
-      // Шаг 1: Загрузка шрифтов
-      setLoadingProgress('Загрузка шрифтов...');
-      await Font.loadAsync({
-        'IBM-Plex-Mono': require('./assets/fonts/IBMPlexMono-Regular.ttf'),
-        'IBM-Plex-Mono-Bold': require('./assets/fonts/IBMPlexMono-Bold.ttf'),
-      });
-      setFontsLoaded(true);
+    async function initializeApp() {
+      try {
+        setLoadingProgress('Загрузка шрифтов...');
+        await Font.loadAsync({
+          'IBM-Plex-Mono': require('./assets/fonts/IBMPlexMono-Regular.ttf'),
+          'IBM-Plex-Mono-Bold': require('./assets/fonts/IBMPlexMono-Bold.ttf'),
+        });
+        setFontsLoaded(true);
 
-      // Шаг 2: Инициализация БД
-      setLoadingProgress('Инициализация базы данных...');
-      await initDatabase();
-      setDbInitialized(true);
-      
-    } catch (error) {
-      console.warn('Error during app initialization:', error);
-      setFontsLoaded(true);
-      setDbInitialized(true);
+        setLoadingProgress('Инициализация базы данных...');
+        console.log('🚀 Начинаем инициализацию БД из App.js');
+        
+        let dbResult = false;
+        for (let attempt = 1; attempt <= 3; attempt++) {
+          console.log(`🔄 Попытка инициализации БД #${attempt}`);
+          dbResult = await initDatabase();
+          
+          if (dbResult && typeof checkDatabaseHealth === 'function') {
+            const health = await checkDatabaseHealth();
+            console.log('🏥 Здоровье БД:', health);
+            if (health.healthy) {
+              console.log('✅ БД инициализирована успешно');
+              break;
+            }
+          }
+          
+          if (attempt < 3) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+        }
+        
+        setDbInitialized(true);
+        
+      } catch (error) {
+        console.warn('Error during app initialization:', error);
+        console.error('Stack:', error.stack);
+        setFontsLoaded(true);
+        setDbInitialized(true);
+      }
     }
-  }
-
-  initializeApp();
-}, []);
+    
+    initializeApp();
+  }, []);
 
   if (!fontsLoaded || !dbInitialized) {
     return (
-      <View style={{ 
-        flex: 1, 
-        justifyContent: 'center', 
+      <View style={{
+        flex: 1,
+        justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: colors.light.background 
+        backgroundColor: colors.light.background
       }}>
-        <ActivityIndicator size="large" color="#7234ED" />
-        <Text style={{ 
-          marginTop: 20, 
+        <ActivityIndicator size="large" color={colors.light.primary} />
+        <Text style={{
+          marginTop: 20,
           fontSize: 16,
           color: colors.light.text,
           fontFamily: 'System',
@@ -108,8 +127,8 @@ function AppLoader({ children }) {
         }}>
           {loadingProgress}
         </Text>
-        <Text style={{ 
-          marginTop: 10, 
+        <Text style={{
+          marginTop: 10,
           fontSize: 12,
           color: colors.light.constantText,
           fontFamily: 'System',
@@ -128,11 +147,13 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <ThemeProvider>
-        <AppLoader>
+        <ActionSheetProvider>
           <NavigationContainer>
-            <ThemedNavigator />
+            <AppLoader>
+              <ThemedNavigator />
+            </AppLoader>
           </NavigationContainer>
-        </AppLoader>
+        </ActionSheetProvider>
       </ThemeProvider>
     </SafeAreaProvider>
   );
