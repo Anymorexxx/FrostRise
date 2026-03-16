@@ -1,88 +1,57 @@
-// constants/colors.js
-
 const lightTheme = {
-  // Фон и шапка
-  background: '#F3DAD2',
-  header: '#7234ED',
-  backArrow: '#7236A7',
-
-  // Текст
-  text: '#000000',
-  constantText: '#897D72',     // константы из БД
-  inputText: '#474747',       // редактируемые поля
-  sectionTitle: '#747473',    // заголовки разделов (настройки, справка)
-
-  // Поля ввода и границы
-  inputBackground: '#EEEEEE',
-  inputBorder: 'rgba(0, 0, 0, 0.5)',
-
-  // Ссылки и интерактив
-  historyLink: '#7EA6D9',
-  link: '#7EA6D9',            // для "Политика конфиденциальности"
-
-  // Кнопки
-  primaryButton: '#8660C9',   // "Рассчитать", "Новый расчёт", "Очистить кэш"
-  secondaryButton: '#B1B1B1', // неактивное состояние
-  exportButton: '#9E81F6',
-
-  // Оценка риска
-  risk: {
-    low: '#52BC6A',
-    medium: '#F3CC56',
-    high: '#BD3F4B',
-  },
-
-  // График
-  chart: {
-    sp: '#7289F8',   // СП 121.13330
-    penoplex: '#FF8652',  // Пеноплекса
-  },
-
-  // История расчётов
-  tag: '#7234ED',     // фон тегов ИГЭ и df
-  noResults: '#747473',
-  clearHistory: '#BD3F4B',
+  background: '#F8F9FA',
+  header: '#ffffff',
+  backArrow: '#4F46E5',
+  text: '#111827',
+  constantText: '#6B7280',
+  inputText: '#374151',
+  sectionTitle: '#4F46E5',
+  inputBackground: '#FFFFFF',
+  inputBorder: '#E5E7EB',
+  historyLink: '#4F46E5',
+  link: '#4F46E5',
+  primaryButton: '#4F46E5',
+  secondaryButton: '#E5E7EB',
+  exportButton: '#4F46E5',
+  cardBackground: '#FFFFFF',
+  cardShadow: 'rgba(0,0,0,0.05)',
+  risk: { low: '#10B981', medium: '#F59E0B', high: '#EF4444' },
+  chart: { sp: '#4F46E5', penoplex: '#F59E0B' },
+  tag: '#EEF2FF',
+  tagText: '#4F46E5',
+  noResults: '#6B7280',
+  clearHistory: '#EF4444',
+  iconColor: '#4F46E5',
 };
 
 const darkTheme = {
-  background: '#2B2B2B',
-  header: '#5173E2',
-  backArrow: '#9EB6F6',
-  
-  text: '#FFFFFF',
-  constantText: '#AAAAAA',
-  inputText: '#CCCCCC',
-  sectionTitle: '#AAAAAA',
-
-  inputBackground: '#3A3A3A',
-  inputBorder: 'rgba(255, 255, 255, 0.3)',
-
-  historyLink: '#7EA6D9',
-  link: '#9EB6F6',
-
-  primaryButton: '#5173E2',
-  secondaryButton: '#444444',
-  exportButton: '#7289F8',
-
-  risk: {
-    low: '#52BC6A',
-    medium: '#F3CC56',
-    high: '#BD3F4B',
-  },
-
-  chart: {
-    sp: '#7289F8',
-    penoplex: '#FF8652',
-  },
-
-  tag: '#5173E2',
-  noResults: '#AAAAAA',
-  clearHistory: '#BD3F4B',
+  background: '#111827',
+  header: '#1F2937',
+  backArrow: '#818CF8',
+  text: '#F9FAFB',
+  constantText: '#9CA3AF',
+  inputText: '#D1D5DB',
+  sectionTitle: '#818CF8',
+  inputBackground: '#1F2937',
+  inputBorder: '#374151',
+  historyLink: '#818CF8',
+  link: '#818CF8',
+  primaryButton: '#6366F1',
+  secondaryButton: '#374151',
+  exportButton: '#6366F1',
+  cardBackground: '#1F2937',
+  cardShadow: 'rgba(0,0,0,0.3)',
+  risk: { low: '#10B981', medium: '#F59E0B', high: '#EF4444' },
+  chart: { sp: '#818CF8', penoplex: '#F59E0B' },
+  tag: '#374151',
+  tagText: '#818CF8',
+  noResults: '#9CA3AF',
+  clearHistory: '#EF4444',
+  iconColor: '#818CF8',
 };
 
-// Для использования в компонентах
 export default {
   light: lightTheme,
   dark: darkTheme,
-  system: lightTheme, // system будет использовать light как fallback
-};
+  system: lightTheme,
+  };

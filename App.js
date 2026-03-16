@@ -49,7 +49,6 @@ function ThemedNavigator() {
       }}
     >
       <Stack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
-      <Stack.Screen name="Input" component={InputScreen} options={{ title: 'Ввод параметров' }} />
       <Stack.Screen name="Result" component={ResultScreen} options={{ title: 'Результаты расчёта' }} />
       <Stack.Screen name="History" component={HistoryScreen} options={{ title: 'История расчётов' }} />
       <Stack.Screen name="Help" component={HelpScreen} options={{ title: 'О приложении' }} />

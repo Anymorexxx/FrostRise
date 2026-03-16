@@ -1,51 +1,53 @@
-// screens/HomeScreen.js
 import React, { useContext } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Dimensions, Platform } from 'react-native';
 import { ThemeContext } from '../context/ThemeContext';
 import colors from '../constants/colors';
-import { CONFIG } from '../constants/config';
+import { Ionicons } from '@expo/vector-icons';
+import { StatusBar } from 'expo-status-bar';
+
+const { width } = Dimensions.get('window');
 
 export default function HomeScreen({ navigation }) {
   const { theme } = useContext(ThemeContext);
   const currentColors = colors[theme] || colors.light;
 
   return (
-    <View style={[styles.container, { backgroundColor: currentColors.background }]}>
-      {/* Шапка с кнопкой настроек */}
+    <SafeAreaView style={[styles.container, { backgroundColor: currentColors.background }]}>
+      <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
       <View style={styles.header}>
         <TouchableOpacity 
-          style={styles.settingsButton}
+          style={styles.iconButton}
+          onPress={() => navigation.navigate('Help')}
+        >
+          <Ionicons name="help-circle-outline" size={28} color={currentColors.iconColor} />
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={styles.iconButton}
           onPress={() => navigation.navigate('Settings')}
         >
-          <Text style={[styles.headerText, { color: currentColors.link }]}>Настройки</Text>
+          <Ionicons name="settings-outline" size={26} color={currentColors.iconColor} />
         </TouchableOpacity>
       </View>
 
-      {/* Основной контент */}
       <View style={styles.content}>
+        <View style={[styles.iconContainer, { backgroundColor: currentColors.tag, shadowColor: currentColors.primaryButton }]}>
+          <Ionicons name="snow-outline" size={64} color={currentColors.tagText} />
+        </View>
         <Text style={[styles.title, { color: currentColors.text }]}>FrostRise</Text>
-        <Text style={[styles.subtitle, { color: currentColors.text }]}>
-          Точный расчет пучения грунта для дорог, фундаментов и аэродромов
+        <Text style={[styles.subtitle, { color: currentColors.constantText }]}>
+          Точный расчёт глубины промерзания грунта для дорог, фундаментов и аэродромов
         </Text>
 
         <TouchableOpacity
-          style={[styles.button, { backgroundColor: currentColors.primaryButton }]}
+          style={[styles.button, { backgroundColor: currentColors.primaryButton, shadowColor: currentColors.primaryButton }]}
           onPress={() => navigation.navigate('Input')}
+          activeOpacity={0.8}
         >
-          <Text style={[styles.buttonText, { color: currentColors.text }]}>Новый расчёт</Text>
+          <Text style={styles.buttonText}>Новый расчёт</Text>
+          <Ionicons name="arrow-forward" size={20} color="#FFFFFF" style={styles.buttonIcon} />
         </TouchableOpacity>
       </View>
-
-      {/* Футер с кнопкой справки */}
-      <View style={styles.footer}>
-        <TouchableOpacity 
-          style={styles.helpButton}
-          onPress={() => navigation.navigate('Help')}
-        >
-          <Text style={[styles.footerText, { color: currentColors.link }]}>Справка</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -54,66 +56,69 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    paddingTop: 60,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     paddingHorizontal: 20,
-    alignItems: 'flex-end',
+    paddingTop: Platform.OS === 'android' ? 40 : 20,
   },
-  settingsButton: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-  },
-  headerText: {
-    fontSize: 16,
-    fontFamily: 'IBM-Plex-Mono',
+  iconButton: {
+    padding: 8,
+    borderRadius: 12,
   },
   content: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: 30,
     marginTop: -40,
   },
+  iconContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 30,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.2,
+    shadowRadius: 20,
+    elevation: 5,
+  },
   title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    marginBottom: 10,
+    fontSize: 40,
+    fontWeight: '800',
+    marginBottom: 16,
     textAlign: 'center',
     fontFamily: 'IBM-Plex-Mono-Bold',
+    letterSpacing: -1,
   },
   subtitle: {
     fontSize: 16,
     textAlign: 'center',
-    marginBottom: 30,
-    lineHeight: 22,
+    marginBottom: 50,
+    lineHeight: 24,
     fontFamily: 'IBM-Plex-Mono',
   },
   button: {
-    paddingVertical: 15,
+    flexDirection: 'row',
+    paddingVertical: 18,
     paddingHorizontal: 40,
-    borderRadius: 8,
-    width: '80%',
+    borderRadius: 16,
+    width: width * 0.85,
+    justifyContent: 'center',
     alignItems: 'center',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 8,
   },
   buttonText: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '700',
+    color: '#FFFFFF',
     fontFamily: 'IBM-Plex-Mono-Bold',
   },
-  footer: {
-    padding: 20,
-    paddingBottom: 40,
-    alignItems: 'center',
-  },
-  helpButton: {
-    marginBottom: 15,
-    paddingVertical: 8,
-  },
-  footerText: {
-    fontSize: 16,
-    fontFamily: 'IBM-Plex-Mono',
-  },
-  versionText: {
-    fontSize: 12,
-    fontFamily: 'IBM-Plex-Mono',
-  },
+  buttonIcon: {
+    marginLeft: 10,
+  }
 });
